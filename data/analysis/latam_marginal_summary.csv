@@ -1,0 +1,2 @@
+line_id,name,from_country,to_country,fmax_mw,capex_musd,iar_musd_y,cr_musd_y,residual_musd_y,use_pct,classification
+38,COM_CUY --> CL_CENTRO,AR,CL,435.0,307.7,28.686,130.05,-101.364,89.26,Viable bilateralmente

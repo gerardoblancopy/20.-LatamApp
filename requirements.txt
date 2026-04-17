@@ -1,0 +1,6 @@
+pandas
+openpyxl
+numpy
+pyomo
+matplotlib
+highspy
