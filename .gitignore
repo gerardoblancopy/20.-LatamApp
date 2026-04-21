@@ -8,3 +8,4 @@ __pycache__/
 *.pyc
 legacy/interfaz_metodologias/frontend/dist/
 legacy/interfaz_metodologias/frontend/node_modules/
+manual_captures/

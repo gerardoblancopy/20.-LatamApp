@@ -21,7 +21,7 @@ bloquear_invtx_existenteinternacional = True
 flux0_internacional_candidata = False
 ordendemerito = False
 escenario_ejecucion = 'S0'
-solver_choice = 'gurobi'
+solver_choice = 'appsi_highs'
 
 # Parse arguments
 if len(sys.argv) > 1:
@@ -1148,6 +1148,17 @@ if ordendemerito and escenario_ejecucion == 'S1':
             print('Sin linea objetivo especificada. El solver elegirá la mejor interconexión.')
     else:
         print("El modelo no tiene la variable X_LN.")
+
+# Autocheck para Gurobi en el environment
+gurobi_disponible = pyo.SolverFactory('gurobi').available(exception_flag=False)
+
+if gurobi_disponible:
+    print("Gurobi detectado y licenciado. Forzando solver_choice = 'gurobi'")
+    solver_choice = 'gurobi'
+else:
+    if solver_choice == 'gurobi':
+        print("Gurobi solicitado pero no encontrado o sin licencia. Fallback a 'appsi_highs'")
+        solver_choice = 'appsi_highs'
 
 print(f"Iniciando solver: {solver_choice}")
 if solver_choice == 'gurobi':

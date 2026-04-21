@@ -72,6 +72,9 @@ app.post('/api/run-model', (req, res) => {
     } else if (process.platform === 'darwin') {
         pythonBin = 'arch';
         pythonArgs = ['-arm64', 'python3', 'data_processing.py', configStr];
+    } else if (process.platform === 'win32') {
+        pythonBin = 'python';
+        pythonArgs = ['data_processing.py', configStr];
     } else {
         pythonBin = 'python3';
         pythonArgs = ['data_processing.py', configStr];
