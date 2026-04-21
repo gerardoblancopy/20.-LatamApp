@@ -22,6 +22,11 @@ out = {}
 prod_dict = {}
 rev_dict = {}
 
+prod_dict_sem1 = {}
+prod_dict_sem2 = {}
+rev_dict_sem1 = {}
+rev_dict_sem2 = {}
+
 inv_dict = {}
 inv_files = glob.glob(os.path.join(directorio, '*_inversiones_mw.csv'))
 if inv_files:
@@ -49,10 +54,19 @@ if inv_files:
 try:
     df_prod = pd.read_excel(os.path.join(directorio, 'Resultados_data_gen.xlsx'), header=[0, 1])
     df_prod_calc = df_prod.iloc[1:].reset_index(drop=True)
+    mid = len(df_prod_calc) // 2
     sums = df_prod_calc.sum(numeric_only=True)
+    sum_1 = df_prod_calc.iloc[:mid].sum(numeric_only=True)
+    sum_2 = df_prod_calc.iloc[mid:].sum(numeric_only=True)
     for k, v in sums.items():
         if isinstance(k, tuple) and len(k) >= 2:
             prod_dict[(str(k[0]), str(k[1]))] = float(v) * 100
+    for k, v in sum_1.items():
+        if isinstance(k, tuple) and len(k) >= 2:
+            prod_dict_sem1[(str(k[0]), str(k[1]))] = float(v) * 100
+    for k, v in sum_2.items():
+        if isinstance(k, tuple) and len(k) >= 2:
+            prod_dict_sem2[(str(k[0]), str(k[1]))] = float(v) * 100
             
     try:
         df_mc = pd.read_excel(os.path.join(directorio, 'Costo_marginal_Resultados.xlsx'))
@@ -65,6 +79,11 @@ try:
                     mc_series = pd.to_numeric(df_mc[cn], errors='coerce').fillna(0)
                     rev = (gen_series * mc_series).sum() * 100
                     rev_dict[(str(n), str(t))] = float(rev)
+                    
+                    rev_1 = (gen_series.iloc[:mid] * mc_series.iloc[:mid]).sum() * 100
+                    rev_2 = (gen_series.iloc[mid:] * mc_series.iloc[mid:]).sum() * 100
+                    rev_dict_sem1[(str(n), str(t))] = float(rev_1)
+                    rev_dict_sem2[(str(n), str(t))] = float(rev_2)
     except Exception as e_mc:
         print(f"Warning: could not compute revenue matching marginal costs: {e_mc}")
             
@@ -121,20 +140,39 @@ for s in gen_sheets:
             inv_pot = inv_dict.get((nodo_gen, tech), 0.0)
                 
         out[pais].append({
-            'name': nodo_gen, 
-            'tech': tech, 
-            'capmax': cap, 
-            'inv_pot_MW': inv_pot,
-            'cv': cv,
-            'prod': prod,
-            'rev': rev,
-            'total_var_cost': total_var_cost,
-            'profit': profit
+            'name': nodo_gen, 'tech': tech, 'capmax': cap, 'inv_pot_MW': inv_pot,
+            'cv': cv, 'prod': prod, 'rev': rev, 'total_var_cost': total_var_cost, 'profit': profit
+        })
+        
+        # Build SEM 1
+        if 'out_sem1' not in locals(): out_sem1 = {}
+        if pais not in out_sem1: out_sem1[pais] = []
+        prod_s1 = prod_dict_sem1.get((nodo_gen, prod_tech), 0.0)
+        rev_s1 = rev_dict_sem1.get((nodo_gen, prod_tech), 0.0)
+        tvc_s1 = prod_s1 * cv
+        out_sem1[pais].append({
+            'name': nodo_gen, 'tech': tech, 'capmax': cap, 'inv_pot_MW': inv_pot,
+            'cv': cv, 'prod': prod_s1, 'rev': rev_s1, 'total_var_cost': tvc_s1, 'profit': rev_s1 - tvc_s1
+        })
+        
+        # Build SEM 2
+        if 'out_sem2' not in locals(): out_sem2 = {}
+        if pais not in out_sem2: out_sem2[pais] = []
+        prod_s2 = prod_dict_sem2.get((nodo_gen, prod_tech), 0.0)
+        rev_s2 = rev_dict_sem2.get((nodo_gen, prod_tech), 0.0)
+        tvc_s2 = prod_s2 * cv
+        out_sem2[pais].append({
+            'name': nodo_gen, 'tech': tech, 'capmax': cap, 'inv_pot_MW': inv_pot,
+            'cv': cv, 'prod': prod_s2, 'rev': rev_s2, 'total_var_cost': tvc_s2, 'profit': rev_s2 - tvc_s2
         })
 
 with open(os.path.join(directorio, 'generators_summary.json'), 'w', encoding='utf-8') as f: 
     json.dump(out, f, indent=2, ensure_ascii=False)
-print("Generators exported")
+with open(os.path.join(directorio, 'generators_summary_sem1.json'), 'w', encoding='utf-8') as f: 
+    json.dump(out_sem1, f, indent=2, ensure_ascii=False)
+with open(os.path.join(directorio, 'generators_summary_sem2.json'), 'w', encoding='utf-8') as f: 
+    json.dump(out_sem2, f, indent=2, ensure_ascii=False)
+print("Generators exported (Global, Sem1, Sem2)")
 
 storage_out = {}
 try:

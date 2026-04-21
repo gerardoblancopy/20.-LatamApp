@@ -3,6 +3,7 @@ const xlsx = require('xlsx');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 
 const { exec, spawn } = require('child_process');
 
@@ -284,6 +285,32 @@ app.get('/api/generators', (req, res) => {
     }
 });
 
+app.get('/api/generators-sem1', (req, res) => {
+    const gensFile = getFilePath('generators_summary_sem1.json', req);
+    if (fs.existsSync(gensFile)) {
+        try {
+            res.json(JSON.parse(fs.readFileSync(gensFile, 'utf8')));
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to read generators S1 data' });
+        }
+    } else {
+        res.status(404).json({ error: 'Not found.' });
+    }
+});
+
+app.get('/api/generators-sem2', (req, res) => {
+    const gensFile = getFilePath('generators_summary_sem2.json', req);
+    if (fs.existsSync(gensFile)) {
+        try {
+            res.json(JSON.parse(fs.readFileSync(gensFile, 'utf8')));
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to read generators S2 data' });
+        }
+    } else {
+        res.status(404).json({ error: 'Not found.' });
+    }
+});
+
 app.get('/api/demand', (req, res) => {
     const demandFile = getFilePath('demand_summary.json', req);
     if (fs.existsSync(demandFile)) {
@@ -297,6 +324,32 @@ app.get('/api/demand', (req, res) => {
         }
     } else {
         res.status(404).json({ error: 'Demand summary not found. Run model first.' });
+    }
+});
+
+app.get('/api/demand-sem1', (req, res) => {
+    const demandFile = getFilePath('demand_summary_sem1.json', req);
+    if (fs.existsSync(demandFile)) {
+        try {
+            res.json(JSON.parse(fs.readFileSync(demandFile, 'utf8')));
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to read demand S1 data' });
+        }
+    } else {
+        res.status(404).json({ error: 'Not found.' });
+    }
+});
+
+app.get('/api/demand-sem2', (req, res) => {
+    const demandFile = getFilePath('demand_summary_sem2.json', req);
+    if (fs.existsSync(demandFile)) {
+        try {
+            res.json(JSON.parse(fs.readFileSync(demandFile, 'utf8')));
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to read demand S2 data' });
+        }
+    } else {
+        res.status(404).json({ error: 'Not found.' });
     }
 });
 

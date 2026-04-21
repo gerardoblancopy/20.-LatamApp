@@ -3,14 +3,13 @@ version: '3.8'
 services:
   latam-app:
     build: .
-    container_name: latam-app-container
+    container_name: latam-app
     ports:
-      - "7860:7860"
+      - "3005:7860"
     environment:
+      - NODE_ENV=production
       - PORT=7860
       - PYTHON_CMD=python3
     volumes:
-      # Montar volúmenes locales para desarrollo (opcional)
-      # - .:/app
-      # - /app/node_modules
+      - ./data:/app/data
     restart: unless-stopped

@@ -21,6 +21,7 @@ bloquear_invtx_existenteinternacional = True
 flux0_internacional_candidata = False
 ordendemerito = False
 escenario_ejecucion = 'S0'
+solver_choice = 'gurobi'
 
 # Parse arguments
 if len(sys.argv) > 1:
@@ -50,6 +51,7 @@ if len(sys.argv) > 1:
             except ValueError:
                 pass
         if 'escenario_ejecucion' in config: escenario_ejecucion = config['escenario_ejecucion']
+        if 'solver' in config: solver_choice = config['solver']
 
     except Exception as e:
         print(f"Error parsing config: {e}")
@@ -1147,11 +1149,24 @@ if ordendemerito and escenario_ejecucion == 'S1':
     else:
         print("El modelo no tiene la variable X_LN.")
 
-solver = pyo.SolverFactory('appsi_highs')
-solver.config.time_limit = 600
-solver.config.mip_gap = 0.01
-solver.config.load_solution = False
-results = solver.solve(model, tee=True)
+print(f"Iniciando solver: {solver_choice}")
+if solver_choice == 'gurobi':
+    solver = pyo.SolverFactory('gurobi')
+    solver.options['TimeLimit'] = 600
+    solver.options['MIPGap'] = 0.01
+    results = solver.solve(model, tee=True)
+elif solver_choice == 'glpk':
+    solver = pyo.SolverFactory('glpk')
+    solver.options['tmlim'] = 600
+    solver.options['mipgap'] = 0.01
+    results = solver.solve(model, tee=True)
+else:
+    solver = pyo.SolverFactory('appsi_highs')
+    solver.config.time_limit = 600
+    solver.config.mip_gap = 0.01
+    solver.config.load_solution = False
+    results = solver.solve(model, tee=True)
+
 from pyomo.opt import TerminationCondition
 tc = results.solver.termination_condition
 print(f"Termination condition: {tc}")

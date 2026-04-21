@@ -2170,7 +2170,7 @@ const createTooltipHTML = (label, description = '', formula = '', align = 'left'
                 <div style="cursor: help; color: #9ca3af; transition: color 0.2s;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#9ca3af'">
                     <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <div class="tooltip-content" style="position: absolute; bottom: 100%; margin-bottom: 4px; display: none; width: 250px; padding: 12px; background: #1f2937; color: white; font-size: 12px; border-radius: 8px; font-weight: normal; text-transform: none; z-index: 100; white-space: normal; text-align: left; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); ${positionStyle}">
+                <div class="tooltip-content" style="position: absolute; bottom: 100%; margin-bottom: 4px; display: none; width: 320px; padding: 14px; background: #1f2937; color: white; font-size: 12px; border-radius: 8px; font-weight: normal; text-transform: none; z-index: 99999; white-space: normal; text-align: left; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); ${positionStyle}">
                     ${description ? `<div style="color: #e5e7eb; line-height: 1.5;">${description}</div>` : ''}
                     ${formula ? `
                         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #4b5563;">
@@ -2303,12 +2303,13 @@ async function showMethodologyResults(lineName) {
 
     // ----- STATE FOR TABS -----
     // ASIA STATE
-    let asiaInputs = { capex_usd: 939644790.0, life_years: 25, r_annual: 0.06, om_frac_annual: 0.015, hours_year: 8760 };
+    let asiaInputs = { capex_usd: 939644790.0, life_years: 25, r_annual: 0.06, om_frac_annual: 0.015, hours_year: 8760, alpha_d: 1.0, alpha_g: 0.0, beta_d: 0.5, beta_g: 0.5 };
     let asiaMilesLine = 100;
     let asiaMwMileRule = 'importer_pays';
     let asiaProjectToYear = false;
     let asiaExpostMethod = 'stamp';
     let asiaExpostMUSD = true;
+    let asiaConfigCustomized = false;
 
     // EUROPA STATE
     let europaInputs = { itc_rate_usd_per_mwh: 0.50, cid_split: 0.50, infra_fund_usd_per_hour: 0.0, infra_split_ft: 0.75, infra_split_fl: 0.25 };
@@ -2336,7 +2337,7 @@ async function showMethodologyResults(lineName) {
                 <div style="cursor: help; color: #9ca3af; transition: color 0.2s;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#9ca3af'">
                     <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <div class="tooltip-content" style="position: absolute; bottom: 100%; margin-bottom: 4px; display: none; width: 250px; padding: 12px; background: #1f2937; color: white; font-size: 12px; border-radius: 8px; font-weight: normal; text-transform: none; z-index: 100; white-space: normal; text-align: left; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); ${positionStyle}">
+                <div class="tooltip-content" style="position: absolute; bottom: 100%; margin-bottom: 4px; display: none; width: 320px; padding: 14px; background: #1f2937; color: white; font-size: 12px; border-radius: 8px; font-weight: normal; text-transform: none; z-index: 99999; white-space: normal; text-align: left; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); ${positionStyle}">
                     ${description ? `<div style="color: #e5e7eb; line-height: 1.5;">${description}</div>` : ''}
                     ${formula ? `
                         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #4b5563;">
@@ -2350,7 +2351,7 @@ async function showMethodologyResults(lineName) {
     `;
     };
 
-    let siepacExpostMUSD = true;
+    if (typeof window.siepacExpostMUSD === 'undefined') window.siepacExpostMUSD = true;
 
     // Fetch and Process Logic
     try {
@@ -2368,31 +2369,42 @@ async function showMethodologyResults(lineName) {
             ? (precomputedLatam.scenario || targetScenario || 'S1')
             : (targetScenario || 'S1');
 
-        let [genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, linesS1] = await Promise.all([
+        let [genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, linesS1, genS0_s1, genS0_s2, genS1_s1, genS1_s2, demS0_s1, demS0_s2, demS1_s1, demS1_s2] = await Promise.all([
             fetchJson('/api/generators?scenario=' + baselineScenario), fetchJson('/api/generators?scenario=' + conScenario),
             fetchJson('/api/demand?scenario=' + baselineScenario), fetchJson('/api/demand?scenario=' + conScenario),
             fetchJson('/api/flows?scenario=' + baselineScenario), fetchJson('/api/flows?scenario=' + conScenario),
             fetchJson('/api/marginal-costs?scenario=' + baselineScenario), fetchJson('/api/marginal-costs?scenario=' + conScenario),
             fetchJson('/api/transmission-investment?scenario=' + conScenario),
-            fetchJson('/api/lines?scenario=' + conScenario)
+            fetchJson('/api/lines?scenario=' + conScenario),
+            fetchJson('/api/generators-sem1?scenario=' + baselineScenario), fetchJson('/api/generators-sem2?scenario=' + baselineScenario),
+            fetchJson('/api/generators-sem1?scenario=' + conScenario), fetchJson('/api/generators-sem2?scenario=' + conScenario),
+            fetchJson('/api/demand-sem1?scenario=' + baselineScenario), fetchJson('/api/demand-sem2?scenario=' + baselineScenario),
+            fetchJson('/api/demand-sem1?scenario=' + conScenario), fetchJson('/api/demand-sem2?scenario=' + conScenario)
         ]);
 
         // Fallback to S0/S1 if precomputed scenario folders don't exist
         if ((!genS1 || !demS1 || !flowS1 || !mcS1) && (baselineScenario !== 'S0' || conScenario !== 'S1')) {
             console.warn(`Precomputed scenarios (${baselineScenario}/${conScenario}) not found, falling back to S0/S1`);
-            [genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, linesS1] = await Promise.all([
+            [genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, linesS1, genS0_s1, genS0_s2, genS1_s1, genS1_s2, demS0_s1, demS0_s2, demS1_s1, demS1_s2] = await Promise.all([
                 fetchJson('/api/generators?scenario=S0'), fetchJson('/api/generators?scenario=S1'),
                 fetchJson('/api/demand?scenario=S0'), fetchJson('/api/demand?scenario=S1'),
                 fetchJson('/api/flows?scenario=S0'), fetchJson('/api/flows?scenario=S1'),
                 fetchJson('/api/marginal-costs?scenario=S0'), fetchJson('/api/marginal-costs?scenario=S1'),
                 fetchJson('/api/transmission-investment?scenario=S1'),
-                fetchJson('/api/lines?scenario=S1')
+                fetchJson('/api/lines?scenario=S1'),
+                fetchJson('/api/generators-sem1?scenario=S0'), fetchJson('/api/generators-sem2?scenario=S0'),
+                fetchJson('/api/generators-sem1?scenario=S1'), fetchJson('/api/generators-sem2?scenario=S1'),
+                fetchJson('/api/demand-sem1?scenario=S0'), fetchJson('/api/demand-sem2?scenario=S0'),
+                fetchJson('/api/demand-sem1?scenario=S1'), fetchJson('/api/demand-sem2?scenario=S1')
             ]);
         }
 
         if (!genS1 || !demS1 || !flowS1 || !mcS1) throw new Error("Datos incompletos para el caso base o S1.");
 
-        globalData = { genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, lines: linesS1, baselineScenario, conScenario };
+        globalData = { 
+            genS0, genS1, demS0, demS1, flowS0, flowS1, mcS0, mcS1, transS1, lines: linesS1, baselineScenario, conScenario,
+            genS0_s1, genS0_s2, genS1_s1, genS1_s2, demS0_s1, demS0_s2, demS1_s1, demS1_s2 
+        };
 
         // Calculate initial CVT Semestral automatically
         let lmpFrom = []; let lmpTo = [];
@@ -2558,10 +2570,9 @@ async function showMethodologyResults(lineName) {
         const lFlows = flowData[lName] || (flowData.flows && flowData.flows[lName]) || [];
 
         if (lmpFrom && lmpTo && lFlows.length > 0) {
-            let division_horas = lFlows.length > 0 ? (8760 / lFlows.length) : 100;
             for (let i = 0; i < lFlows.length; i++) {
                 const lmpF = lmpFrom[i] || 0; const lmpT = lmpTo[i] || 0; const f = lFlows[i] || 0;
-                rent += f * (lmpT - lmpF) * division_horas;
+                rent += f * (lmpT - lmpF);
             }
         }
         return rent;
@@ -2624,7 +2635,10 @@ async function showMethodologyResults(lineName) {
             if (row.netoAgentes < loserNet.netoAgentes) loserNet = row;
         });
 
-        const congestionRentS1 = calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName);
+        const rentRaw = calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName);
+        const lFlowsS1 = (globalData.flowS1 && globalData.flowS1.flows && globalData.flowS1.flows[lineName]) ? globalData.flowS1.flows[lineName] : [];
+        const division_horas_s1 = lFlowsS1.length > 0 ? (8760 / lFlowsS1.length) : 100;
+        const congestionRentS1 = rentRaw * division_horas_s1;
 
         contentContainer.innerHTML = `
             <div class="res-card" style="border-top: 4px solid #6366f1;">
@@ -2748,13 +2762,23 @@ async function showMethodologyResults(lineName) {
 
             let crE = 0, crI = 0;
             if (isCon) {
-                let rent = calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName) * energyMultiplier;
+                let rentRaw = calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName);
+                let division_h_asia = conFlows.length > 0 ? (8760 / conFlows.length) : 100;
+                let rent = rentRaw * division_h_asia * energyMultiplier;
                 crE = rent * 0.5; crI = rent * 0.5;
             }
 
+            const alpha_d = typeof asiaInputs.alpha_d !== 'undefined' ? asiaInputs.alpha_d : 1.0;
+            const alpha_g = typeof asiaInputs.alpha_g !== 'undefined' ? asiaInputs.alpha_g : 0.0;
+            const beta_d = typeof asiaInputs.beta_d !== 'undefined' ? asiaInputs.beta_d : 0.5;
+            const beta_g = typeof asiaInputs.beta_g !== 'undefined' ? asiaInputs.beta_g : 0.5;
+
             return {
-                bsE: mOpE + peE, bsI: mOpI + peI, bgE: mPrE + crE - peE, bgI: mPrI + crI - peI, cdE: mDmE + peE, cdI: mDmI + peI,
-                mOpE, mOpI, mPrE, mPrI, mDmE, mDmI, peE, peI, crE, crI
+                bsE: mOpE + peE - crE, bsI: mOpI + peI - crI,
+                bgE: mPrE - (alpha_g * peE) + (beta_g * crE), bgI: mPrI - (alpha_g * peI) + (beta_g * crI),
+                cdE: mDmE + (alpha_d * peE) - (beta_d * crE), cdI: mDmI + (alpha_d * peI) - (beta_d * crI),
+                mOpE, mOpI, mPrE, mPrI, mDmE, mDmI, peE, peI, crE, crI,
+                alpha_d, alpha_g, beta_d, beta_g
             };
         };
 
@@ -2767,32 +2791,90 @@ async function showMethodologyResults(lineName) {
 
         const formatExpost = (val) => val != null && !isNaN(val) ? (asiaExpostMUSD ? (val / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-';
 
-        contentContainer.innerHTML = `
-            <div class="res-card">
-                <div class="res-card-header" style="background:#1e3a8a; color:white;">Configuración Financiera (ASIA)</div>
-                <div class="res-card-body" style="background:#f9fafb;">
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items:center;">
-                        <div style="flex:1"><span class="form-label" title="Capital Expenditure: costo total de inversión de la línea de interconexión en dólares estadounidenses.">CAPEX (USD) ℹ️</span><input type="number" id="asia_capex" class="form-input" value="${asiaInputs.capex_usd}"></div>
-                        <div style="flex:1"><span class="form-label" title="Vida útil del proyecto en años. Se usa junto con la tasa de descuento para calcular el Factor de Recuperación de Capital (CRF) y la anualidad del CAPEX.">Años ℹ️</span><input type="number" id="asia_n" class="form-input" value="${asiaInputs.life_years}"></div>
-                        <div style="flex:1"><span class="form-label" title="Tasa de descuento anual. Se usa para calcular el CRF: r·(1+r)^n / ((1+r)^n - 1), que convierte el CAPEX en una anualidad equivalente.">Tasa (r) ℹ️</span><input type="number" id="asia_r" class="form-input" value="${asiaInputs.r_annual}" step="0.01"></div>
-                        <div style="flex:1"><span class="form-label" title="Fracción anual del CAPEX destinada a Operación y Mantenimiento. Ej: 0.02 = 2% del CAPEX por año.">O&M Frac ℹ️</span><input type="number" id="asia_om" class="form-input" value="${asiaInputs.om_frac_annual}" step="0.01"></div>
-                        <div style="flex:1"><span class="form-label" title="Longitud de la línea de transmisión en millas. Se utiliza en el método MW-Mile para ponderar el costo por distancia recorrida por el flujo.">Millas Carga ℹ️</span><input type="number" id="asia_miles" class="form-input" value="${asiaMilesLine}"></div>
+                let alphaSum = typeof asiaInputs.alpha_d === 'number' && typeof asiaInputs.alpha_g === 'number' ? (asiaInputs.alpha_d + asiaInputs.alpha_g) : 1;
+        let betaSum = typeof asiaInputs.beta_d === 'number' && typeof asiaInputs.beta_g === 'number' ? (asiaInputs.beta_d + asiaInputs.beta_g) : 1;
+        let isValidEconomic = (Math.abs(alphaSum - 1.0) < 0.001) && (Math.abs(betaSum - 1.0) < 0.001);
+        let badgeBg = asiaConfigCustomized ? '#fef08a' : '#bbf7d0';
+        let badgeCol = asiaConfigCustomized ? '#854d0e' : '#166534';
+        let badgeTxt = asiaConfigCustomized ? 'Personalizada' : 'Recomendada (' + (asiaExpostMethod === 'stamp' ? 'Stamp' : 'MW-Milla') + ')';
+        let restoreDisp = asiaConfigCustomized ? 'inline-block' : 'none';
 
-                        <div style="flex:1"><span class="form-label" title="Regla de asignación de costos MW-Mile: quién paga el cargo por uso de la red. Importador Paga: 100% al importador. Exportador Paga: 100% al exportador. 50/50: se divide equitativamente.">Regla MW-Mile ℹ️</span><select id="asia_rule" class="form-input">
-                            <option value="importer_pays" ${asiaMwMileRule === 'importer_pays' ? 'selected' : ''}>Importador Paga</option>
-                            <option value="exporter_pays" ${asiaMwMileRule === 'exporter_pays' ? 'selected' : ''}>Exportador Paga</option>
-                            <option value="split_50_50" ${asiaMwMileRule === 'split_50_50' ? 'selected' : ''}>50% / 50%</option>
-                        </select></div>
-                        <div style="flex:1"><span class="form-label" title="Método de análisis ex-post. Sello Postal: tarifa fija por MWh independiente de la distancia. MW-Mile: tarifa proporcional al flujo y la distancia de la línea utilizada.">Método Análisis ℹ️</span><select id="asia_method" class="form-input">
-                            <option value="stamp" ${asiaExpostMethod === 'stamp' ? 'selected' : ''}>Sello Postal</option>
-                            <option value="mwm" ${asiaExpostMethod === 'mwm' ? 'selected' : ''}>MW-Mile</option>
-                        </select></div>
-                        <label style="display:flex; align-items:center; gap:5px; font-size:13px; font-weight:bold; height:100%;" title="Si está activado, el CAPEX total se convierte en una anualidad equivalente usando el CRF (tasa r y vida n años). Si no, se usa el CAPEX total sin anualizar.">
-                            <input type="checkbox" id="asia_ptoyear" ${asiaProjectToYear ? 'checked' : ''}> Anualizado ℹ️
-                        </label>
-                        <button id="asia_recalc" style="padding: 6px 16px; background:#2563eb; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Recalcular</button>
+        contentContainer.innerHTML = `
+            <div class="res-card" style="overflow:visible; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div class="res-card-header" style="background:#1e3a8a; color:white;">Configuración Financiera (ASIA)</div>
+                <div class="res-card-body" style="background:#f9fafb; display: flex; gap: 15px; align-items: stretch; flex-wrap: wrap;">
+                    
+                    <!-- Panel 1: Costos del Proyecto -->
+                    <div class="res-card" style="flex:1; min-width: 250px; margin-bottom: 0; border-top: 4px solid #9ca3af; display:flex; flex-direction:column;">
+                        <div class="res-card-header">1. Costos del Proyecto</div>
+                        <div class="res-card-body" style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                            <div style="display:flex; gap: 8px;">
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">CAPEX (USD) ℹ️</span><input type="number" id="asia_capex" class="form-input" value="${asiaInputs.capex_usd}"></div>
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">Años ℹ️</span><input type="number" id="asia_n" class="form-input" value="${asiaInputs.life_years}"></div>
+                            </div>
+                            <div style="display:flex; gap: 8px;">
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">Tasa (r) ℹ️</span><input type="number" id="asia_r" class="form-input" value="${asiaInputs.r_annual}" step="0.01"></div>
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">O&M Frac ℹ️</span><input type="number" id="asia_om" class="form-input" value="${asiaInputs.om_frac_annual}" step="0.01"></div>
+                            </div>
+                            <label style="display:flex; align-items:center; gap:5px; font-size:13px; font-weight:bold; margin-top: auto; color:#374151;">
+                                <input type="checkbox" id="asia_ptoyear" ${asiaProjectToYear ? 'checked' : ''}> Anualizar CAPEX
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: Metodología Tarifaria -->
+                    <div class="res-card" style="flex:1; min-width: 250px; margin-bottom: 0; border-top: 4px solid #3b82f6; display:flex; flex-direction:column;">
+                        <div class="res-card-header">2. Metodología Tarifaria</div>
+                        <div class="res-card-body" style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                            <div><span class="form-label" style="font-weight:600; font-size:0.8rem;">Método Análisis ℹ️</span><select id="asia_method" class="form-input">
+                                <option value="stamp" ${asiaExpostMethod === 'stamp' ? 'selected' : ''}>Sello Postal</option>
+                                <option value="mwm" ${asiaExpostMethod === 'mwm' ? 'selected' : ''}>MW-Mile</option>
+                            </select></div>
+                            <div style="display:flex; gap: 8px;">
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">Millas Carga ℹ️</span><input type="number" id="asia_miles" class="form-input" value="${asiaMilesLine}"></div>
+                                <div style="flex:1"><span class="form-label" style="font-weight:600; font-size:0.8rem;">Regla MW-Mile ℹ️</span><select id="asia_rule" class="form-input">
+                                    <option value="importer_pays" ${asiaMwMileRule === 'importer_pays' ? 'selected' : ''}>Importador Paga</option>
+                                    <option value="exporter_pays" ${asiaMwMileRule === 'exporter_pays' ? 'selected' : ''}>Exportador Paga</option>
+                                    <option value="split_50_50" ${asiaMwMileRule === 'split_50_50' ? 'selected' : ''}>50% / 50%</option>
+                                </select></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: Reglas Regulatorias Ex-Post -->
+                    <div class="res-card" style="flex:2; min-width: 320px; margin-bottom: 0; border-top: 4px solid #8b5cf6; display:flex; flex-direction:column;">
+                        <div class="res-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span>3. Reglas de Asignación Ex-Post</span>
+                            <span id="asia_badge" style="font-size:11px; background:${badgeBg}; color:${badgeCol}; padding:2px 6px; border-radius:12px; font-weight:bold; display:inline-block;">${badgeTxt}</span>
+                        </div>
+                        <div class="res-card-body" style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                            <div style="display:flex; gap:10px;">
+                                <div style="flex:1; border:1px solid var(--border); padding:8px; border-radius:4px; background:var(--bg-elevated);">
+                                    <div style="font-size:12px; font-weight:bold; color:var(--text-secondary); margin-bottom:4px;" title="α define quién paga la red">Regla Peaje (α)</div>
+                                    <div style="display:flex; gap:4px;">
+                                        <div style="flex:1"><span class="form-label" style="font-weight:500; font-size:0.8rem;">α Demanda</span><input type="number" id="asia_alpha_d" class="form-input" style="padding:4px; font-size:0.85rem;" value="${asiaInputs.alpha_d}" step="0.1"></div>
+                                        <div style="flex:1"><span class="form-label" style="font-weight:500; font-size:0.8rem;">α Generador</span><input type="number" id="asia_alpha_g" class="form-input" style="padding:4px; font-size:0.85rem;" value="${asiaInputs.alpha_g}" step="0.1"></div>
+                                    </div>
+                                </div>
+                                <div style="flex:1; border:1px solid var(--border); padding:8px; border-radius:4px; background:var(--bg-elevated);">
+                                    <div style="font-size:12px; font-weight:bold; color:var(--text-secondary); margin-bottom:4px;" title="β define quién recibe la renta de congestión">Regla Renta (β)</div>
+                                    <div style="display:flex; gap:4px;">
+                                        <div style="flex:1"><span class="form-label" style="font-weight:500; font-size:0.8rem;">β Demanda</span><input type="number" id="asia_beta_d" class="form-input" style="padding:4px; font-size:0.85rem;" value="${asiaInputs.beta_d}" step="0.1"></div>
+                                        <div style="flex:1"><span class="form-label" style="font-weight:500; font-size:0.8rem;">β Generador</span><input type="number" id="asia_beta_g" class="form-input" style="padding:4px; font-size:0.85rem;" value="${asiaInputs.beta_g}" step="0.1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: auto; padding-top:4px; gap: 8px;">
+                                <button id="asia_restore_btn" style="font-size:12px; background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 10px; border-radius:4px; cursor:pointer; display:${restoreDisp}; font-weight:600;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">↺ Restaurar recomendada</button>
+                                <span style="flex:1"></span>
+                                <button id="asia_recalc" ${!isValidEconomic ? 'disabled' : ''} style="padding: 8px 16px; background:${isValidEconomic ? '#2563eb' : '#9ca3af'}; color:white; border:none; border-radius:4px; font-weight:bold; cursor:${isValidEconomic ? 'pointer' : 'not-allowed'}; box-shadow:0 2px 4px rgba(0,0,0,0.1);">Recalcular Resultados</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <!-- Alerta Oculta/Visible -->
+                <div id="asia_validation_warn" style="background:#fef2f2; border-top:1px solid #fecaca; color:#b91c1c; padding:10px 16px; font-size:13px; font-weight:bold; display:${!isValidEconomic ? 'flex' : 'none'}; align-items:center; gap:8px;">⚠️ Los parámetros proporcionales α o β no cumplen consistencia económica (la sumatoria debe ser 1.0). Ajuste los valores para realizar el cálculo.</div>
             </div>
 
             <div style="display: flex; gap: 20px;">
@@ -2822,7 +2904,7 @@ async function showMethodologyResults(lineName) {
                         <h3 style="margin:0; font-size:1.1rem; color:#1e3a8a;">Análisis Adicional: 3 Modelos Ex-Post</h3>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span style="font-size:0.9em; font-weight:bold; color: #1e3a8a;">Mostrar en:</span>
-                            <select id="asia_expost_unit" style="padding:4px; font-weight:bold; cursor:pointer; color: #1e3a8a; border: 1px solid #93c5fd; border-radius: 4px;" onchange="asiaExpostMUSD = this.value === 'MUSD'; document.getElementById('asia_recalc').click();">
+                            <select id="asia_expost_unit" style="padding:4px; font-weight:bold; cursor:pointer; color: #1e3a8a; border: 1px solid #93c5fd; border-radius: 4px;" onchange="document.getElementById('asia_recalc').click();">
                                 <option value="MUSD" ${asiaExpostMUSD ? 'selected' : ''}>MUSD</option>
                                 <option value="USD" ${!asiaExpostMUSD ? 'selected' : ''}>USD</option>
                             </select>
@@ -2832,7 +2914,7 @@ async function showMethodologyResults(lineName) {
                     <!-- CASO SIN -->
                     <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #9ca3af;">
                         <div class="res-card-header" style="background: #f3f4f6;">${createTooltipHTML('1. Caso Base (SIN)', 'Situación del país considerando que no opera ninguna interconexión', 'Flujo de Línea (F) = 0')}</div>
-                        <div class="res-card-body" style="padding: 0;">
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                             <table class="res-table">
                                 <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix} ${asiaExpostMUSD ? '(MUSD)' : '(USD)'}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                 <tbody>
@@ -2847,13 +2929,13 @@ async function showMethodologyResults(lineName) {
                     <!-- CASO CON -->
                     <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #3b82f6;">
                         <div class="res-card-header" style="background: #eff6ff; color: #1e3a8a;">${createTooltipHTML('2. Caso Interconectado (CON)', 'Caso considerando peaje de transmisión ASIA (' + asiaExpostMethod.toUpperCase() + ') y renta', 'F(CON) + Peaje ASIA + Renta')}</div>
-                        <div class="res-card-body" style="padding: 0;">
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                             <table class="res-table">
                                 <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix} ${asiaExpostMUSD ? '(MUSD)' : '(USD)'}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Costo Operación + Peaje', 'Costo de operación interno sumado al peaje asignado a ese país bajo la regla activa', 'Costo_Op_País + Peaje')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatExpost(conData.bsE), 'OpCost + Peaje', formatExpost(conData.mOpE) + ' + ' + formatExpost(conData.peE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatExpost(conData.bsI), 'OpCost + Peaje', formatExpost(conData.mOpI) + ' + ' + formatExpost(conData.peI), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Ben Gen + Renta - Peaje', 'Beneficio del generador sumando la renta país y deduciendo su peaje correspondiente', 'Profit - Peaje + Renta')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatExpost(conData.bgE), 'Profit - Peaje + Renta', formatExpost(conData.mPrE) + ' - ' + formatExpost(conData.peE) + ' + ' + formatExpost(conData.crE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatExpost(conData.bgI), 'Profit - Peaje + Renta', formatExpost(conData.mPrI) + ' - ' + formatExpost(conData.peI) + ' + ' + formatExpost(conData.crI), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Demanda + Peaje', 'La demanda asume todo el peaje ASIA en este caso', 'Demanda + Peaje')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatExpost(conData.cdE), 'DemCost + Peaje', formatExpost(conData.mDmE) + ' + ' + formatExpost(conData.peE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatExpost(conData.cdI), 'DemCost + Peaje', formatExpost(conData.mDmI) + ' + ' + formatExpost(conData.peI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Costo Operación + Peaje - Renta', 'Costo Var. + Peaje - Renta')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatExpost(conData.bsE), 'Costo Var. + Peaje - Renta =', formatExpost(conData.mOpE) + ' + ' + formatExpost(conData.peE) + ' - ' + formatExpost(conData.crE) + ' = ' + formatExpost(conData.bsE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatExpost(conData.bsI), 'Costo Var. + Peaje - Renta =', formatExpost(conData.mOpI) + ' + ' + formatExpost(conData.peI) + ' - ' + formatExpost(conData.crI) + ' = ' + formatExpost(conData.bsI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Benef. Puro - αg·Peaje + βg·Renta', 'Beneficio del generador considerando alícuotas')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatExpost(conData.bgE), 'Benef. Puro - αg·Peaje + βg·Renta =', formatExpost(conData.mPrE) + ' - ' + conData.alpha_g + '·' + formatExpost(conData.peE) + ' + ' + conData.beta_g + '·' + formatExpost(conData.crE) + ' = ' + formatExpost(conData.bgE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatExpost(conData.bgI), 'Benef. Puro - αg·Peaje + βg·Renta =', formatExpost(conData.mPrI) + ' - ' + conData.alpha_g + '·' + formatExpost(conData.peI) + ' + ' + conData.beta_g + '·' + formatExpost(conData.crI) + ' = ' + formatExpost(conData.bgI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML('Costo Dem. Puro + αd·Peaje - βd·Renta', 'Costo Demanda considerando alícuotas')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatExpost(conData.cdE), 'Costo Dem. Puro + αd·Peaje - βd·Renta =', formatExpost(conData.mDmE) + ' + ' + conData.alpha_d + '·' + formatExpost(conData.peE) + ' - ' + conData.beta_d + '·' + formatExpost(conData.crE) + ' = ' + formatExpost(conData.cdE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatExpost(conData.cdI), 'Costo Dem. Puro + αd·Peaje - βd·Renta =', formatExpost(conData.mDmI) + ' + ' + conData.alpha_d + '·' + formatExpost(conData.peI) + ' - ' + conData.beta_d + '·' + formatExpost(conData.crI) + ' = ' + formatExpost(conData.cdI), 'right')}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -2862,13 +2944,13 @@ async function showMethodologyResults(lineName) {
                     <!-- DELTAS -->
                     <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #8b5cf6;">
                         <div class="res-card-header" style="background: #f5f3ff; color: #4c1d95;">${createTooltipHTML('3. Ganadores y perdedores (Δ)', 'Diferencial neto del beneficio/coste (Ganan si costo baja o profit sube)')}</div>
-                        <div class="res-card-body" style="padding: 0;">
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                             <table class="res-table">
                                 <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix} ${asiaExpostMUSD ? '(MUSD)' : '(USD)'}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Operación</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsE < 0 ? 'bold' : 'normal'}; color:${deltaBsE < 0 ? '#16a34a' : '#ef4444'}">${deltaBsE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.bsE) + ' - ' + formatExpost(sinData.bsE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsI < 0 ? 'bold' : 'normal'}; color:${deltaBsI < 0 ? '#16a34a' : '#ef4444'}">${deltaBsI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.bsI) + ' - ' + formatExpost(sinData.bsI), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Beneficio Generador</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgE > 0 ? 'bold' : 'normal'}; color:${deltaBgE > 0 ? '#16a34a' : '#ef4444'}">${deltaBgE > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgE) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.bgE) + ' - ' + formatExpost(sinData.bgE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgI > 0 ? 'bold' : 'normal'}; color:${deltaBgI > 0 ? '#16a34a' : '#ef4444'}">${deltaBgI > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgI) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.bgI) + ' - ' + formatExpost(sinData.bgI), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Demanda</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdE < 0 ? 'bold' : 'normal'}; color:${deltaCdE < 0 ? '#16a34a' : '#ef4444'}">${deltaCdE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cdE) + ' - ' + formatExpost(sinData.cdE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdI < 0 ? 'bold' : 'normal'}; color:${deltaCdI < 0 ? '#16a34a' : '#ef4444'}">${deltaCdI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cdI) + ' - ' + formatExpost(sinData.cdI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Operación</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsE < 0 ? 'bold' : 'normal'}; color:${deltaBsE < 0 ? '#16a34a' : '#ef4444'}">${deltaBsE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.bsE) + ' - ' + formatExpost(sinData.bsE) + ' = ' + formatExpost(deltaBsE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsI < 0 ? 'bold' : 'normal'}; color:${deltaBsI < 0 ? '#16a34a' : '#ef4444'}">${deltaBsI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.bsI) + ' - ' + formatExpost(sinData.bsI) + ' = ' + formatExpost(deltaBsI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Beneficio Generador</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgE > 0 ? 'bold' : 'normal'}; color:${deltaBgE > 0 ? '#16a34a' : '#ef4444'}">${deltaBgE > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgE) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.bgE) + ' - ' + formatExpost(sinData.bgE) + ' = ' + formatExpost(deltaBgE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgI > 0 ? 'bold' : 'normal'}; color:${deltaBgI > 0 ? '#16a34a' : '#ef4444'}">${deltaBgI > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgI) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.bgI) + ' - ' + formatExpost(sinData.bgI) + ' = ' + formatExpost(deltaBgI), 'right')}</td></tr>
+                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Demanda</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdE < 0 ? 'bold' : 'normal'}; color:${deltaCdE < 0 ? '#16a34a' : '#ef4444'}">${deltaCdE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cdE) + ' - ' + formatExpost(sinData.cdE) + ' = ' + formatExpost(deltaCdE), 'right')}</td><td align="right" style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdI < 0 ? 'bold' : 'normal'}; color:${deltaCdI < 0 ? '#16a34a' : '#ef4444'}">${deltaCdI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cdI) + ' - ' + formatExpost(sinData.cdI) + ' = ' + formatExpost(deltaCdI), 'right')}</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -2877,15 +2959,86 @@ async function showMethodologyResults(lineName) {
             </div>
         `;
 
+        const checkValidation = () => {
+            const ad = Number(document.getElementById('asia_alpha_d').value);
+            const ag = Number(document.getElementById('asia_alpha_g').value);
+            const bd = Number(document.getElementById('asia_beta_d').value);
+            const bg = Number(document.getElementById('asia_beta_g').value);
+            
+            const isValid = (Math.abs((ad + ag) - 1.0) < 0.001) && (Math.abs((bd + bg) - 1.0) < 0.001);
+            const btn = document.getElementById('asia_recalc');
+            const warn = document.getElementById('asia_validation_warn');
+            
+            if (isValid) {
+                btn.disabled = false;
+                btn.style.background = '#2563eb';
+                btn.style.cursor = 'pointer';
+                if(warn) warn.style.display = 'none';
+            } else {
+                btn.disabled = true;
+                btn.style.background = '#9ca3af';
+                btn.style.cursor = 'not-allowed';
+                if(warn) warn.style.display = 'flex';
+            }
+            
+            // Track customization against defaults
+            if (Math.abs(ad - 1) > 0.001 || Math.abs(ag - 0) > 0.001 || Math.abs(bd - 0.5) > 0.001 || Math.abs(bg - 0.5) > 0.001) {
+                asiaConfigCustomized = true;
+                document.getElementById('asia_badge').innerHTML = 'Personalizada';
+                document.getElementById('asia_badge').style.background = '#fef08a';
+                document.getElementById('asia_badge').style.color = '#854d0e';
+                const rest = document.getElementById('asia_restore_btn');
+                if (rest) rest.style.display = 'inline-block';
+            }
+        };
+
+        ['asia_alpha_d', 'asia_alpha_g', 'asia_beta_d', 'asia_beta_g'].forEach(id => {
+            document.getElementById(id).addEventListener('input', checkValidation);
+        });
+        
+        document.getElementById('asia_method').addEventListener('change', (e) => {
+            if (!asiaConfigCustomized) {
+                document.getElementById('asia_alpha_d').value = 1.0;
+                document.getElementById('asia_alpha_g').value = 0.0;
+                document.getElementById('asia_beta_d').value = 0.5;
+                document.getElementById('asia_beta_g').value = 0.5;
+                checkValidation();
+            }
+        });
+        
+        const btnRestore = document.getElementById('asia_restore_btn');
+        if (btnRestore) {
+            btnRestore.addEventListener('click', () => {
+                asiaConfigCustomized = false;
+                document.getElementById('asia_alpha_d').value = 1.0;
+                document.getElementById('asia_alpha_g').value = 0.0;
+                document.getElementById('asia_beta_d').value = 0.5;
+                document.getElementById('asia_beta_g').value = 0.5;
+                
+                document.getElementById('asia_badge').innerHTML = 'Recomendada (' + (document.getElementById('asia_method').value === 'stamp' ? 'Stamp' : 'MW-Milla') + ')';
+                document.getElementById('asia_badge').style.background = '#bbf7d0';
+                document.getElementById('asia_badge').style.color = '#166534';
+                btnRestore.style.display = 'none';
+                checkValidation();
+            });
+        }
+        
         document.getElementById('asia_recalc').onclick = () => {
             asiaInputs.capex_usd = Number(document.getElementById('asia_capex').value);
             asiaInputs.life_years = Number(document.getElementById('asia_n').value);
             asiaInputs.r_annual = Number(document.getElementById('asia_r').value);
             asiaInputs.om_frac_annual = Number(document.getElementById('asia_om').value);
+            asiaInputs.alpha_d = Number(document.getElementById('asia_alpha_d').value);
+            asiaInputs.alpha_g = Number(document.getElementById('asia_alpha_g').value);
+            asiaInputs.beta_d = Number(document.getElementById('asia_beta_d').value);
+            asiaInputs.beta_g = Number(document.getElementById('asia_beta_g').value);
             asiaMilesLine = Number(document.getElementById('asia_miles').value);
             asiaMwMileRule = document.getElementById('asia_rule').value;
             asiaExpostMethod = document.getElementById('asia_method').value;
             asiaProjectToYear = document.getElementById('asia_ptoyear').checked;
+            if (document.getElementById('asia_expost_unit')) {
+                asiaExpostMUSD = document.getElementById('asia_expost_unit').value === 'MUSD';
+            }
             renderAsia();
         };
     }
@@ -2899,7 +3052,7 @@ async function showMethodologyResults(lineName) {
             if (typeof window.europaSosTotal === 'undefined') window.europaSosTotal = 0;
 
             if (!globalData || !globalData.flowS1) throw new Error("Datos de flujo S1 no disponibles.");
-            
+
             const conFlows = (globalData.flowS1.flows && globalData.flowS1.flows[lineName]) ? globalData.flowS1.flows[lineName] : [];
             let sum_abs_f = 0; let sum_raw_f = 0;
             if (conFlows.length > 0) {
@@ -2950,8 +3103,8 @@ async function showMethodologyResults(lineName) {
 
             // --- Comprehensive CBA Calculations ---
             const allCountries = [expC, impC];
-            const CBA_CO2_SHARES = { "CL": 1/3, "PE": 1/3, "AR": 1/3, "BO": 0, "BR": 0 }; // Default shares using codes
-            const CBA_SOS_SHARES = { "CL": 1/3, "PE": 1/3, "AR": 1/3, "BO": 0, "BR": 0 };
+            const CBA_CO2_SHARES = { "CL": 1 / 3, "PE": 1 / 3, "AR": 1 / 3, "BO": 0, "BR": 0 }; // Default shares using codes
+            const CBA_SOS_SHARES = { "CL": 1 / 3, "PE": 1 / 3, "AR": 1 / 3, "BO": 0, "BR": 0 };
 
             const r_disc = window.europaDiscRate;
             const n_years = window.europaHorizon;
@@ -2960,24 +3113,29 @@ async function showMethodologyResults(lineName) {
             let annualImpacts = allCountries.map(c => {
                 let s0 = getCountryStats(c, globalData.genS0, globalData.demS0);
                 let s1 = getCountryStats(c, globalData.genS1, globalData.demS1);
-                
+
                 // ΔCS = -(P1 - P0) * D0. 
                 // In our data, s.demandCost is already (P * D). 
                 // Since D is inelastic D1=D0, ΔCS = s0.demandCost - s1.demandCost
                 let deltaCS = (s0.demandCost - s1.demandCost) * projFactor;
                 let deltaPS = (s1.genProfit - s0.genProfit) * projFactor;
-                
+
                 let co2 = (window.europaCo2Total * 1000000 * (CBA_CO2_SHARES[c] || 0)) * projFactor;
                 let sos = (window.europaSosTotal * 1000000 * (CBA_SOS_SHARES[c] || 0)) * projFactor;
-                
+
                 let cr_alloc = 0;
                 if (c === expC) cr_alloc = cid_e;
                 if (c === impC) cr_alloc = cid_i;
-                
+
                 let benefitsA = deltaCS + deltaPS + co2 + sos;
                 let benefitsB = benefitsA + cr_alloc;
-                
-                return { country: c, deltaCS, deltaPS, co2, sos, benefitsA, benefitsB, cr_alloc };
+
+                return { 
+                    country: c, deltaCS, deltaPS, co2, sos, benefitsA, benefitsB, cr_alloc,
+                    s0_dem: (s0.demandCost || 0) * projFactor, s1_dem: (s1.demandCost || 0) * projFactor,
+                    s1_gen: (s1.genProfit || 0) * projFactor, s0_gen: (s0.genProfit || 0) * projFactor,
+                    co2_share: (CBA_CO2_SHARES[c] || 0), sos_share: (CBA_SOS_SHARES[c] || 0)
+                };
             });
 
             // NPV and PV
@@ -2990,7 +3148,7 @@ async function showMethodologyResults(lineName) {
 
             let pv_benefits_A_total = annualImpacts.reduce((sum, row) => sum + row.benefitsA, 0) * pvaf;
             let pv_benefits_B_total = annualImpacts.reduce((sum, row) => sum + row.benefitsB, 0) * pvaf;
-            
+
             let pv_opex = (capex_base * 0.015) * pvaf; // Assuming 1.5% O&M
             let pv_cost_total = capex_base + pv_opex;
 
@@ -3001,10 +3159,11 @@ async function showMethodologyResults(lineName) {
                 let shareB = pv_benefits_B_total !== 0 ? pvBenB / pv_benefits_B_total : 0;
                 let costA = shareA * pv_cost_total;
                 let costB = shareB * pv_cost_total;
-                return { 
-                    country: row.country, 
+                return {
+                    country: row.country,
                     pvBenA, costA, npvA: pvBenA - costA,
-                    pvBenB, costB, npvB: pvBenB - costB
+                    pvBenB, costB, npvB: pvBenB - costB,
+                    shareA, shareB
                 };
             }).filter(d => d.pvBenA !== 0 || d.pvBenB !== 0);
 
@@ -3070,7 +3229,7 @@ async function showMethodologyResults(lineName) {
                         <!-- CASO SIN -->
                         <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #9ca3af;">
                             <div class="res-card-header" style="background: #f3f4f6;">${createTooltipHTML('1. Caso Base (SIN)', 'Situación del país considerando que no opera ninguna interconexión', 'Flujo de Línea (F) = 0')}</div>
-                            <div class="res-card-body" style="padding: 0;">
+                            <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                                 <table class="res-table">
                                     <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                     <tbody>
@@ -3085,7 +3244,7 @@ async function showMethodologyResults(lineName) {
                         <!-- CASO CON -->
                         <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #3b82f6;">
                             <div class="res-card-header" style="background: #eff6ff; color: #1e3a8a;">${createTooltipHTML('2. Caso Interconectado (CON)', 'Caso analizando el bloque SIN vs CON directamente (CBA ENTSO-E)', 'F(CON)')}</div>
-                            <div class="res-card-body" style="padding: 0;">
+                            <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                                 <table class="res-table">
                                     <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                     <tbody>
@@ -3100,7 +3259,7 @@ async function showMethodologyResults(lineName) {
                         <!-- DELTAS -->
                         <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #8b5cf6;">
                             <div class="res-card-header" style="background: #f5f3ff; color: #4c1d95;">${createTooltipHTML('3. Ganadores y perdedores (Δ)', 'Diferencial neto del beneficio/coste (Ganan si costo baja o profit sube)')}</div>
-                            <div class="res-card-body" style="padding: 0;">
+                            <div class="res-card-body" style="padding: 0; overflow: visible !important;">
                                 <table class="res-table">
                                     <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica ${unitSuffix}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;" align="right">Imp: ${impC}</th></tr></thead>
                                     <tbody>
@@ -3119,10 +3278,10 @@ async function showMethodologyResults(lineName) {
                     <div class="res-card-header">Liquidación TSO (Cálculos Centralizados)</div>
                     <div class="res-card-body">
                         <table class="res-table text-right">
-                            <thead><tr><th style="text-align:left;">TSO País</th><th>Pago ITC</th><th>Ingreso CID</th><th>Ingreso Infra</th><th>Liq. Final Ex-Post</th></tr></thead>
+                            <thead><tr><th style="text-align:left;">${createTooltipHTML('TSO País', 'Operador de Sistema de Transmisión')}</th><th>${createTooltipHTML('Pago ITC', 'Mecanismo Inter-Transmission Compensation', 'Fijado según uso transfronterizo')}</th><th>${createTooltipHTML('Ingreso CID', 'Distribución de Rentas de Congestión (CID)', 'Renta Congestión Total * CID_Split')}</th><th>${createTooltipHTML('Ingreso Infra', 'Ingreso por Fondos de Infraestructura', 'Compensación de infraestructura base')}</th><th>${createTooltipHTML('Liq. Final Ex-Post', 'Saldo Neto Final de Liquidación del TSO', 'Ingreso CID + Ingreso Infra - Pago ITC')}</th></tr></thead>
                             <tbody>
-                                <tr><td style="text-align:left; font-weight:bold;">${expC} (Exp)</td><td style="color:#dc2626;">-${formatCur(itc_pay_e)}</td><td style="color:#2563eb;">${formatCur(cid_e)}</td><td style="color:#2563eb;">${formatCur(itc_inc_e)}</td><td style="font-weight:bold;">${formatCur(set_e)}</td></tr>
-                                <tr><td style="text-align:left; font-weight:bold;">${impC} (Imp)</td><td style="color:#dc2626;">-${formatCur(itc_pay_i)}</td><td style="color:#2563eb;">${formatCur(cid_i)}</td><td style="color:#2563eb;">${formatCur(itc_inc_i)}</td><td style="font-weight:bold;">${formatCur(set_i)}</td></tr>
+                                <tr><td style="text-align:left; font-weight:bold;">${expC} (Exp)</td><td style="color:#dc2626;">-${createTooltipHTML(formatCur(itc_pay_e), 'Detalle Pago ITC', formatNum(nf_MWh_anual) + ' MWh * ' + rate + ' $/MWh', 'right')}</td><td style="color:#2563eb;">${createTooltipHTML(formatCur(cid_e), 'Detalle Ingreso CID', formatCur(rent_total) + ' * ' + (cid_split * 100) + '%', 'right')}</td><td style="color:#2563eb;">${createTooltipHTML(formatCur(itc_inc_e), 'Detalle Ingreso Infra', fund + ' $/h * ' + formatNum(base_hours) + 'h * 50%', 'right')}</td><td style="font-weight:bold;">${createTooltipHTML(formatCur(set_e), 'Saldo Neto Ex-Post', formatCur(cid_e) + ' + ' + formatCur(itc_inc_e) + ' - ' + formatCur(itc_pay_e), 'left')}</td></tr>
+                                <tr><td style="text-align:left; font-weight:bold;">${impC} (Imp)</td><td style="color:#dc2626;">-${createTooltipHTML(formatCur(itc_pay_i), 'Detalle Pago ITC', formatNum(nf_MWh_anual) + ' MWh * ' + rate + ' $/MWh', 'right')}</td><td style="color:#2563eb;">${createTooltipHTML(formatCur(cid_i), 'Detalle Ingreso CID', formatCur(rent_total) + ' * ' + ((1 - cid_split) * 100) + '%', 'right')}</td><td style="color:#2563eb;">${createTooltipHTML(formatCur(itc_inc_i), 'Detalle Ingreso Infra', fund + ' $/h * ' + formatNum(base_hours) + 'h * 50%', 'right')}</td><td style="font-weight:bold;">${createTooltipHTML(formatCur(set_i), 'Saldo Neto Ex-Post', formatCur(cid_i) + ' + ' + formatCur(itc_inc_i) + ' - ' + formatCur(itc_pay_i), 'left')}</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -3138,13 +3297,13 @@ async function showMethodologyResults(lineName) {
                                 ${annualImpacts.filter(r => r.benefitsA !== 0 || r.benefitsB !== 0).map(r => `
                                     <tr>
                                         <td style="text-align:left; font-weight:bold;">${r.country}</td>
-                                        <td>${formatCur(r.deltaCS)}</td>
-                                        <td>${formatCur(r.deltaPS)}</td>
-                                        <td>${formatCur(r.co2)}</td>
-                                        <td>${formatCur(r.sos)}</td>
-                                        <td style="font-weight:bold;">${formatCur(r.benefitsA)}</td>
-                                        <td>${formatCur(r.cr_alloc)}</td>
-                                        <td style="font-weight:bold; color:#15803d;">${formatCur(r.benefitsB)}</td>
+                                        <td>${createTooltipHTML(formatCur(r.deltaCS), 'Excedente Consumidor (ΔCS)', formatCur(r.s0_dem) + ' (Costo S0) - ' + formatCur(r.s1_dem) + ' (Costo S1)', 'bottom')}</td>
+                                        <td>${createTooltipHTML(formatCur(r.deltaPS), 'Excedente Productor (ΔPS)', formatCur(r.s1_gen) + ' (Profit S1) - ' + formatCur(r.s0_gen) + ' (Profit S0)', 'bottom')}</td>
+                                        <td>${createTooltipHTML(formatCur(r.co2), 'Monetización CO2', formatCur(window.europaCo2Total * 1000000 * projFactor) + ' Total CO2 * ' + (r.co2_share * 100) + '%', 'bottom')}</td>
+                                        <td>${createTooltipHTML(formatCur(r.sos), 'Seguridad Suministro (SoS)', formatCur(window.europaSosTotal * 1000000 * projFactor) + ' Total SoS * ' + (r.sos_share * 100) + '%', 'bottom')}</td>
+                                        <td style="font-weight:bold;">${createTooltipHTML(formatCur(r.benefitsA), 'Beneficios SEW (A)', formatCur(r.deltaCS) + ' CS + ' + formatCur(r.deltaPS) + ' PS + ' + formatCur(r.co2) + ' + ' + formatCur(r.sos), 'bottom')}</td>
+                                        <td>${createTooltipHTML(formatCur(r.cr_alloc), 'Renta Congestión Asignada', r.country === expC ? 'Equivale al CID_E' : (r.country === impC ? 'Equivale al CID_I' : '0.00'), 'bottom')}</td>
+                                        <td style="font-weight:bold; color:#15803d;">${createTooltipHTML(formatCur(r.benefitsB), 'Beneficios Base (B)', formatCur(r.benefitsA) + ' A + ' + formatCur(r.cr_alloc) + ' CR', 'left')}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -3165,8 +3324,8 @@ async function showMethodologyResults(lineName) {
                                 ${pvData.map(r => `
                                     <tr>
                                         <td style="text-align:left; font-weight:bold;">${r.country}</td>
-                                        <td>${formatCur(r.pvBenA)}</td><td style="color:#dc2626;">${formatCur(r.costA)}</td><td style="font-weight:bold; color:${r.npvA >= 0 ? '#15803d' : '#dc2626'}">${formatCur(r.npvA)}</td>
-                                        <td style="border-left:1px solid #ddd;">${formatCur(r.pvBenB)}</td><td style="color:#dc2626;">${formatCur(r.costB)}</td><td style="font-weight:bold; color:${r.npvB >= 0 ? '#15803d' : '#dc2626'}">${formatCur(r.npvB)}</td>
+                                        <td>${createTooltipHTML(formatCur(r.pvBenA), 'Present Value Ben A', 'Beneficios A * PVAF(' + Number(pvaf).toFixed(2) + ')', 'bottom')}</td><td style="color:#dc2626;">${createTooltipHTML(formatCur(r.costA), 'Expected Cost A', formatCur(pv_cost_total) + ' (Costo Inversión PV) * ' + (r.shareA * 100).toFixed(1) + '% (Ratio de Beneficios A)', 'bottom')}</td><td style="font-weight:bold; color:${r.npvA >= 0 ? '#15803d' : '#dc2626'}">${createTooltipHTML(formatCur(r.npvA), 'Net Present Value (NPV) A', formatCur(r.pvBenA) + ' (PV Ben A) - ' + formatCur(r.costA) + ' (Exp. Cost A)', 'bottom')}</td>
+                                        <td style="border-left:1px solid #ddd;">${createTooltipHTML(formatCur(r.pvBenB), 'Present Value Ben B', 'Beneficios B * PVAF(' + Number(pvaf).toFixed(2) + ')', 'bottom')}</td><td style="color:#dc2626;">${createTooltipHTML(formatCur(r.costB), 'Expected Cost B', formatCur(pv_cost_total) + ' (Costo Inversión PV) * ' + (r.shareB * 100).toFixed(1) + '% (Ratio de Beneficios B)', 'bottom')}</td><td style="font-weight:bold; color:${r.npvB >= 0 ? '#15803d' : '#dc2626'}">${createTooltipHTML(formatCur(r.npvB), 'Net Present Value (NPV) B', formatCur(r.pvBenB) + ' (PV Ben B) - ' + formatCur(r.costB) + ' (Exp. Cost B)', 'left')}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -3273,7 +3432,7 @@ async function showMethodologyResults(lineName) {
             const projectedIar = capex * crf + (capex * om);
             const modeledCR = precomputedLatam
                 ? Math.max(0, toNumber(precomputedLatam.modeledCRUSDPerYear, 0))
-                : Math.max(0, calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName));
+                : Math.max(0, calculateCongestionRentLocally(globalData.mcS1, globalData.flowS1, expNode, impNode, lineName) * (conFlows.length > 0 ? (8760 / conFlows.length) : 100));
             const expectedCR = latamInputs.expected_cr_usd == null ? modeledCR : Math.max(0, toNumber(latamInputs.expected_cr_usd, modeledCR));
             const realizedIAR = latamInputs.realized_iar_usd == null ? projectedIar : Math.max(0, toNumber(latamInputs.realized_iar_usd, projectedIar));
             const realizedCR = latamInputs.realized_cr_usd == null ? modeledCR : Math.max(0, toNumber(latamInputs.realized_cr_usd, modeledCR));
@@ -3590,8 +3749,8 @@ async function showMethodologyResults(lineName) {
                         <div style="margin-top:16px; padding:12px; background:${obligatoryPass ? '#ecfdf5' : '#fff7ed'}; border:1px solid ${obligatoryPass ? '#86efac' : '#fdba74'}; border-radius:6px; color:${obligatoryPass ? '#166534' : '#9a3412'};">
                             <strong>Lectura bilateral:</strong>
                             ${obligatoryPass
-                                ? `la vista obligatoria entre ${signatoryCountries.join(' y ')} cierra con un residual de ${fmtMUSD(projectedResidual)} MUSD/año y cumple la regla no-loser regional.`
-                                : `la vista obligatoria no alcanza a cerrar completamente la regla no-loser para los firmantes con el residual de ${fmtMUSD(projectedResidual)} MUSD/año.`}
+                    ? `la vista obligatoria entre ${signatoryCountries.join(' y ')} cierra con un residual de ${fmtMUSD(projectedResidual)} MUSD/año y cumple la regla no-loser regional.`
+                    : `la vista obligatoria no alcanza a cerrar completamente la regla no-loser para los firmantes con el residual de ${fmtMUSD(projectedResidual)} MUSD/año.`}
                         </div>
                     </div>
                 </div>
@@ -3617,8 +3776,8 @@ async function showMethodologyResults(lineName) {
                         <div style="margin-top:16px; padding:12px; background:${obligatory.signatoryCountryPass ? '#ecfdf5' : '#fff7ed'}; border:1px solid ${obligatory.signatoryCountryPass ? '#86efac' : '#fdba74'}; border-radius:6px; color:${obligatory.signatoryCountryPass ? '#166534' : '#9a3412'};">
                             <strong>Lectura doméstica:</strong>
                             ${obligatory.signatoryCountryPass
-                                ? `la demanda protegida de los firmantes queda neutralizada bajo la cascada regional -> generadores locales -> top-up externo.`
-                                : `aún queda demanda protegida no compensada en la vista obligatoria, por lo que la línea no cumple completamente la regla no-loser country.`}
+                    ? `la demanda protegida de los firmantes queda neutralizada bajo la cascada regional -> generadores locales -> top-up externo.`
+                    : `aún queda demanda protegida no compensada en la vista obligatoria, por lo que la línea no cumple completamente la regla no-loser country.`}
                         </div>
                     </div>
                 </div>
@@ -3683,8 +3842,8 @@ async function showMethodologyResults(lineName) {
                         <div style="padding:12px; background:${uncoveredShortfall > eps ? '#fff7ed' : '#ecfdf5'}; border:1px solid ${uncoveredShortfall > eps ? '#fdba74' : '#86efac'}; border-radius:6px; color:${uncoveredShortfall > eps ? '#9a3412' : '#166534'};">
                             <strong>Regla del fondo:</strong>
                             ${uncoveredShortfall > eps
-                                ? `el fondo no alcanza para absorber completamente la diferencia entre residual proyectado y residual realizado. El faltante debe pasar a liquidación regional extraordinaria bajo la asignación vigente del corredor.`
-                                : `el fondo absorbe la diferencia entre residual proyectado y realizado sin necesidad de reabrir toda la asignación regional.`}
+                    ? `el fondo no alcanza para absorber completamente la diferencia entre residual proyectado y residual realizado. El faltante debe pasar a liquidación regional extraordinaria bajo la asignación vigente del corredor.`
+                    : `el fondo absorbe la diferencia entre residual proyectado y realizado sin necesidad de reabrir toda la asignación regional.`}
                         </div>
                     </div>
                 </div>
@@ -3725,7 +3884,7 @@ async function showMethodologyResults(lineName) {
         console.log("--- renderSiepac Start ---");
         console.log("siepacInputs:", JSON.stringify(siepacInputs));
 
-        const formatExpost = (val) => val != null && !isNaN(val) ? (siepacExpostMUSD ? (val / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-';
+        const formatExpost = (val) => val != null && !isNaN(val) ? (window.siepacExpostMUSD ? (val / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-';
         let capex = siepacInputs.capex; let r = siepacInputs.r_annual; let n = siepacInputs.life_years; let om = siepacInputs.om_frac_annual;
         let pow_ = Math.pow(1 + r, n); let A_annuity = r > 0 ? (capex * (r * pow_) / (pow_ - 1)) : (capex / n);
         let IAR_annual = A_annuity + (capex * om);
@@ -3793,22 +3952,64 @@ async function showMethodologyResults(lineName) {
         // Renta Congestion S1 y S0 (que siempre es 0 asumo)
         let CR_CON = siepacInputs.CVTn_sem_USD;
 
-        const calculateExPostSIEPAC = (isCon) => {
-            let statsE = getCountryStats(expC, isCon ? globalData.genS1 : globalData.genS0, isCon ? globalData.demS1 : globalData.demS0);
-            let statsI = getCountryStats(impC, isCon ? globalData.genS1 : globalData.genS0, isCon ? globalData.demS1 : globalData.demS0);
+        
+        
+        const calcSemestralParams = (sem) => {
+            let sFlows = sem === 1 ? fullFlows.slice(0, halfCount) : fullFlows.slice(halfCount);
+            let sF = sFlows.length > 0 ? (sFlows.reduce((a, b) => a + b, 0) / sFlows.length) : 0;
+            let sum_abs_s = 0;
+            if (sFlows.length > 0) {
+                for (let f of sFlows) {
+                    sum_abs_s += Math.abs(f);
+                }
+            }
+            let s_division_horas = fullFlows.length > 0 ? (8760 / fullFlows.length) : 100;
+            let sum_abs_f_MWh_s = sum_abs_s * s_division_horas;
+            
+            let s_uso = 0;
+            if (sFlows.length > 0) {
+                s_uso = sum_abs_s / (capacity * sFlows.length);
+                s_uso = Math.min(s_uso, 1.0);
+            }
+            
+            let s_renta = sem === 1 ? (siepacInputs.CVTn_s1_USD || 0) : (siepacInputs.CVTn_s2_USD || 0);
+            let s_ir_raw = (IAR_annual / 2) + (siepacInputs.SCF_USD - siepacInputs.SCE_USD) - s_renta - siepacInputs.IVDT_USD;
+            let s_ir = Math.max(0, s_ir_raw);
+            
+            let s_P = s_ir * s_uso;
+            let s_CC = s_ir * (1 - s_uso);
+            let s_MR = s_P + s_CC;
+            
+            let s_MR_allocated = s_MR * aR;
+            let s_MI_allocated = s_MR * aI;
+            
+            let s_expC = sF >= 0 ? globalData.expCountry : globalData.impCountry;
+            let s_impC = sF >= 0 ? globalData.impCountry : globalData.expCountry;
+            
+            let fraction_year = (sFlows.length * s_division_horas) / 8760;
+            if(isNaN(fraction_year) || fraction_year <= 0) fraction_year = 0.5;
 
-            let fraction_year = hours_semester / 8760;
-            let Rc_sem_E = (statsE.demandMW || 1) * fraction_year;
-            let Ig_sem_E = (statsE.prod || 1) * fraction_year;
-            let Rc_sem_I = (statsI.demandMW || 1) * fraction_year;
-            let Ig_sem_I = (statsI.prod || 1) * fraction_year;
+            return { s_expC, s_impC, s_MR_allocated, s_MI_allocated, sum_abs_f_MWh_s, s_renta, fraction_year };
+        };
 
-            let curtrc_exp = Rc_sem_E > 0 ? MR_allocated / Rc_sem_E : 0;
-            let curtrg_exp = Ig_sem_E > 0 ? MI_allocated / Ig_sem_E : 0;
-            let curtrc_imp = Rc_sem_I > 0 ? MR_allocated / Rc_sem_I : 0;
-            let curtrg_imp = Ig_sem_I > 0 ? MI_allocated / Ig_sem_I : 0;
+        const calculateExPostSIEPAC_Semestral = (isCon, sem) => {
+            const context = calcSemestralParams(sem);
+            let genData = isCon ? globalData[`genS1_s${sem}`] : globalData[`genS0_s${sem}`];
+            let demData = isCon ? globalData[`demS1_s${sem}`] : globalData[`demS0_s${sem}`];
 
-            // Valores anuales directos tomados del output del modelo
+            let statsE = getCountryStats(context.s_expC, genData, demData);
+            let statsI = getCountryStats(context.s_impC, genData, demData);
+
+            let Rc_sem_E = (statsE.demandMW || 1); 
+            let Ig_sem_E = (statsE.prod || 1); 
+            let Rc_sem_I = (statsI.demandMW || 1); 
+            let Ig_sem_I = (statsI.prod || 1); 
+
+            let curtrc_exp = Rc_sem_E > 0 ? context.s_MR_allocated / Rc_sem_E : 0;
+            let curtrg_exp = Ig_sem_E > 0 ? context.s_MI_allocated / Ig_sem_E : 0;
+            let curtrc_imp = Rc_sem_I > 0 ? context.s_MR_allocated / Rc_sem_I : 0;
+            let curtrg_imp = Ig_sem_I > 0 ? context.s_MI_allocated / Ig_sem_I : 0;
+
             let op_cost_h_e = statsE.opCost;
             let op_cost_h_i = statsI.opCost;
             let profit_h_e = statsE.genProfit;
@@ -3816,48 +4017,95 @@ async function showMethodologyResults(lineName) {
             let demand_cost_h_e = statsE.demandCost;
             let demand_cost_h_i = statsI.demandCost;
 
-            let ratio_anualizacion = 8760 / hours_semester; // Convertir lo semestral a anual
-            let peaje_iny_exp_USD = (isCon ? curtrg_exp * sum_abs_f_MWh : 0) * ratio_anualizacion;
-            let peaje_ret_imp_USD = (isCon ? curtrc_imp * sum_abs_f_MWh : 0) * ratio_anualizacion;
-
-            let CR_abs = (isCon ? CR_CON : 0) * ratio_anualizacion;
+            let peaje_iny_exp_USD = isCon ? curtrg_exp * context.sum_abs_f_MWh_s : 0;
+            let peaje_ret_imp_USD = isCon ? curtrc_imp * context.sum_abs_f_MWh_s : 0;
+            let CR_abs = isCon ? context.s_renta : 0;
 
             const ben_soc_exp = op_cost_h_e + peaje_iny_exp_USD;
             const ben_soc_imp = op_cost_h_i + peaje_ret_imp_USD;
-
             const ben_gen_exp = profit_h_e - peaje_iny_exp_USD + CR_abs * aI;
             const ben_gen_imp = profit_h_i;
-
             const cos_dem_exp = demand_cost_h_e;
             const cos_dem_imp = demand_cost_h_i + peaje_ret_imp_USD - CR_abs * aR;
 
             return {
-                ben_soc_exp, ben_soc_imp,
-                ben_gen_exp, ben_gen_imp,
-                cos_dem_exp, cos_dem_imp,
-                peaje_iny_exp_USD, peaje_ret_imp_USD,
-                curtrc_exp, curtrg_exp, curtrc_imp, curtrg_imp,
-                op_cost_h_e, op_cost_h_i,
-                profit_h_e, profit_h_i,
-                demand_cost_h_e, demand_cost_h_i,
-                CR_abs
+                ben_soc_exp, ben_soc_imp, ben_gen_exp, ben_gen_imp, cos_dem_exp, cos_dem_imp,
+                peaje_iny_exp_USD, peaje_ret_imp_USD, curtrc_exp, curtrg_exp, curtrc_imp, curtrg_imp,
+                op_cost_h_e, op_cost_h_i, profit_h_e, profit_h_i, demand_cost_h_e, demand_cost_h_i,
+                CR_abs, expC: context.s_expC, impC: context.s_impC
             };
         };
 
-        const conData = calculateExPostSIEPAC(true);
-        const sinData = calculateExPostSIEPAC(false);
+        const generateExPostHTML = (sem) => {
+            const formatCur = (val) => val != null && !isNaN(val) ? (window.siepacExpostMUSD ? (val / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '0.00';
+            const conData = calculateExPostSIEPAC_Semestral(true, sem);
+            const sinData = calculateExPostSIEPAC_Semestral(false, sem);
 
-        // Deltas
-        let deltaBsE = conData.ben_soc_exp - sinData.ben_soc_exp;
-        let deltaBsI = conData.ben_soc_imp - sinData.ben_soc_imp;
-        let deltaBgE = conData.ben_gen_exp - sinData.ben_gen_exp;
-        let deltaBgI = conData.ben_gen_imp - sinData.ben_gen_imp;
-        let deltaCdE = conData.cos_dem_exp - sinData.cos_dem_exp;
-        let deltaCdI = conData.cos_dem_imp - sinData.cos_dem_imp;
+            let deltaBsE = conData.ben_soc_exp - sinData.ben_soc_exp;
+            let deltaBsI = conData.ben_soc_imp - sinData.ben_soc_imp;
+            let deltaBgE = conData.ben_gen_exp - sinData.ben_gen_exp;
+            let deltaBgI = conData.ben_gen_imp - sinData.ben_gen_imp;
+            let deltaCdE = conData.cos_dem_exp - sinData.cos_dem_exp;
+            let deltaCdI = conData.cos_dem_imp - sinData.cos_dem_imp;
 
-        let targetIsExp = siepacTargetCountry === expC;
-        let target_curtrc = targetIsExp ? conData.curtrc_exp : conData.curtrc_imp;
-        let target_curtrg = targetIsExp ? conData.curtrg_exp : conData.curtrg_imp;
+            let expC = conData.expC;
+            let impC = conData.impC;
+
+            return `
+            <div style="margin-bottom: 24px; background: var(--bg-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid ${sem === 1 ? '#eab308' : '#3b82f6'}; padding-bottom: 8px;">
+                    <h3 style="margin-bottom: 0; font-size: 1.15rem; font-weight: 700; color: white;">Análisis Adicional: 3 Modelos Ex-Post (Semestre ${sem})</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                    <!-- CASO SIN -->
+                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #9ca3af; box-shadow: none; border: 1px solid var(--border); background: var(--bg-elevated); color: white;">
+                        <div class="res-card-header" style="background: #374151; color: white; font-size: 0.9em;">${createTooltipHTML('1. Caso Base (SIN)', 'Situación del país atendienda la demanda aisladamente', 'F = 0')}</div>
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
+                            <table class="res-table" style="font-size: 0.85em;">
+                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">${window.siepacExpostMUSD ? 'MUSD' : 'USD'}</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
+                                <tbody>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Costo Operación</td><td style="padding: 8px 12px;">${createTooltipHTML(formatCur(sinData.ben_soc_exp), 'Costo Op', formatCur(sinData.op_cost_h_e), 'right')}</td><td style="padding: 8px 12px;">${createTooltipHTML(formatCur(sinData.ben_soc_imp), 'Costo Op', formatCur(sinData.op_cost_h_i), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Beneficio Generador</td><td style="padding: 8px 12px; color:#15803d;">${createTooltipHTML(formatCur(sinData.ben_gen_exp), 'Ben Gen', formatCur(sinData.profit_h_e), 'right')}</td><td style="padding: 8px 12px; color:#15803d;">${createTooltipHTML(formatCur(sinData.ben_gen_imp), 'Ben Gen', formatCur(sinData.profit_h_i), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Costo Demanda</td><td style="padding: 8px 12px; color:#dc2626;">${createTooltipHTML(formatCur(sinData.cos_dem_exp), 'Costo Dem', formatCur(sinData.demand_cost_h_e), 'right')}</td><td style="padding: 8px 12px; color:#dc2626;">${createTooltipHTML(formatCur(sinData.cos_dem_imp), 'Costo Dem', formatCur(sinData.demand_cost_h_i), 'right')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- CASO CON -->
+                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #3b82f6; box-shadow: none; border: 1px solid var(--border); background: var(--bg-elevated); color: white;">
+                        <div class="res-card-header" style="background: #1e3a8a; color: white; font-size: 0.9em;">${createTooltipHTML('2. Caso Interconectado (CON)', 'Situación del país despachado regionalmente con rentas y peajes', 'F + Peajes + Δ Rentas')}</div>
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
+                            <table class="res-table" style="font-size: 0.85em;">
+                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">${window.siepacExpostMUSD ? 'MUSD' : 'USD'}</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
+                                <tbody>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Op + Peaje</td><td style="padding: 8px 12px;">${createTooltipHTML(formatCur(conData.ben_soc_exp), 'Op + Peaje', formatCur(conData.op_cost_h_e) + ' + ' + formatCur(conData.peaje_iny_exp_USD), 'right')}</td><td style="padding: 8px 12px;">${createTooltipHTML(formatCur(conData.ben_soc_imp), 'Op + Peaje', formatCur(conData.op_cost_h_i) + ' + ' + formatCur(conData.peaje_ret_imp_USD), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Ben Gen + Renta - Peaje</td><td style="padding: 8px 12px; color:#15803d;">${createTooltipHTML(formatCur(conData.ben_gen_exp), 'Profit - Peaje + Renta', formatCur(conData.profit_h_e) + ' - ' + formatCur(conData.peaje_iny_exp_USD) + ' + ' + formatCur(conData.CR_abs * aI), 'right')}</td><td style="padding: 8px 12px; color:#15803d;">${createTooltipHTML(formatCur(conData.ben_gen_imp), 'Profit', formatCur(conData.profit_h_i), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Dem + Peaje - Renta</td><td style="padding: 8px 12px; color:#dc2626;">${createTooltipHTML(formatCur(conData.cos_dem_exp), 'Demanda', formatCur(conData.demand_cost_h_e), 'right')}</td><td style="padding: 8px 12px; color:#dc2626;">${createTooltipHTML(formatCur(conData.cos_dem_imp), 'Dem + Peaje - Renta', formatCur(conData.demand_cost_h_i) + ' + ' + formatCur(conData.peaje_ret_imp_USD) + ' - ' + formatCur(conData.CR_abs * aR), 'right')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- DELTAS -->
+                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #8b5cf6; box-shadow: none; border: 1px solid var(--border); background: var(--bg-elevated); color: white;">
+                        <div class="res-card-header" style="background: #4c1d95; color: white; font-size: 0.9em;">${createTooltipHTML('3. Ganadores y perdedores (Δ)', 'Diferencial neto del beneficio/coste entre CON y SIN', 'Valor CON vs Valor SIN')}</div>
+                        <div class="res-card-body" style="padding: 0; overflow: visible !important;">
+                            <table class="res-table" style="font-size: 0.85em;">
+                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">${window.siepacExpostMUSD ? 'MUSD' : 'USD'}</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
+                                <tbody>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Δ Costo Operación</td><td style="padding: 8px 12px; font-weight: ${deltaBsE < 0 ? 'bold' : 'normal'}; color:${deltaBsE < 0 ? '#16a34a' : '#ef4444'}">${deltaBsE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsE) + ')', 'Δ', formatExpost(conData.ben_soc_exp) + ' - ' + formatExpost(sinData.ben_soc_exp), 'right')}</td><td style="padding: 8px 12px; font-weight: ${deltaBsI < 0 ? 'bold' : 'normal'}; color:${deltaBsI < 0 ? '#16a34a' : '#ef4444'}">${deltaBsI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsI) + ')', 'Δ', formatExpost(conData.ben_soc_imp) + ' - ' + formatExpost(sinData.ben_soc_imp), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Δ Ben Generador</td><td style="padding: 8px 12px; font-weight: ${deltaBgE > 0 ? 'bold' : 'normal'}; color:${deltaBgE > 0 ? '#16a34a' : '#ef4444'}">${deltaBgE > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgE) + ')', 'Δ', formatExpost(conData.ben_gen_exp) + ' - ' + formatExpost(sinData.ben_gen_exp), 'right')}</td><td style="padding: 8px 12px; font-weight: ${deltaBgI > 0 ? 'bold' : 'normal'}; color:${deltaBgI > 0 ? '#16a34a' : '#ef4444'}">${deltaBgI > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgI) + ')', 'Δ', formatExpost(conData.ben_gen_imp) + ' - ' + formatExpost(sinData.ben_gen_imp), 'right')}</td></tr>
+                                    <tr style="height: 54px;"><td style="padding: 8px 12px;">Δ Costo Demanda</td><td style="padding: 8px 12px; font-weight: ${deltaCdE < 0 ? 'bold' : 'normal'}; color:${deltaCdE < 0 ? '#16a34a' : '#ef4444'}">${deltaCdE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdE) + ')', 'Δ', formatExpost(conData.cos_dem_exp) + ' - ' + formatExpost(sinData.cos_dem_exp), 'right')}</td><td style="padding: 8px 12px; font-weight: ${deltaCdI < 0 ? 'bold' : 'normal'}; color:${deltaCdI < 0 ? '#16a34a' : '#ef4444'}">${deltaCdI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdI) + ')', 'Δ', formatExpost(conData.cos_dem_imp) + ' - ' + formatExpost(sinData.cos_dem_imp), 'right')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        };
+let targetIsExp = siepacTargetCountry === expC;
+        let target_curtrc = 0;
+        let target_curtrg = 0;
         let target_stats = getCountryStats(siepacTargetCountry, globalData.genS1, globalData.demS1);
         let isTargetNodeA = (siepacTargetCountry === expCountry);
         let export_target_MWh = isTargetNodeA ? (sum_pos_f * division_horas) : (sum_neg_f * division_horas);
@@ -3934,67 +4182,23 @@ async function showMethodologyResults(lineName) {
                 </div>
             </div>
 
-            <div style="margin-bottom: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h3 style="margin-bottom: 0; font-size: 1.25rem; font-weight: 600; color: #1e3a8a;">Análisis Adicional: 3 Modelos Ex-Post Anuales</h3>
-                    <div style="display:flex; align-items:center; gap: 8px;">
-                        <span style="font-size:0.9em; font-weight:bold; color: #1e3a8a;">Mostrar en:</span>
-                        <select id="sie_expost_unit" style="padding:4px; font-weight:bold; cursor:pointer; color: #1e3a8a; border: 1px solid #93c5fd; border-radius: 4px;" onchange="siepacExpostMUSD = this.value === 'MUSD'; document.getElementById('sie_recalc').click();">
-                            <option value="MUSD" ${siepacExpostMUSD ? 'selected' : ''}>MUSD</option>
-                            <option value="USD" ${!siepacExpostMUSD ? 'selected' : ''}>USD</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px;">
-                    
-                    <!-- CASO SIN -->
-                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #9ca3af;">
-                        <div class="res-card-header" style="background: #f3f4f6;">${createTooltipHTML('1. Caso Base (SIN)', 'Situación del país considerando que no opera ninguna interconexión transfronteriza y atiende la demanda aisladamente', 'Flujo de Línea (F) = 0')}</div>
-                        <div class="res-card-body" style="padding: 0;">
-                            <table class="res-table">
-                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica Anual</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
-                                <tbody>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Costo Operación País</td><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatCur(sinData.ben_soc_exp), 'Costo Operación', formatCur(sinData.op_cost_h_e) + ' (OpCost)', 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatCur(sinData.ben_soc_imp), 'Costo Operación', formatCur(sinData.op_cost_h_i) + ' (OpCost)', 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Beneficio Generador País</td><td style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatCur(sinData.ben_gen_exp), 'Beneficio Generador', formatCur(sinData.profit_h_e) + ' (Profit)', 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatCur(sinData.ben_gen_imp), 'Beneficio Generador', formatCur(sinData.profit_h_i) + ' (Profit)', 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Costo Demanda País</td><td style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatCur(sinData.cos_dem_exp), 'Costo Demanda', formatCur(sinData.demand_cost_h_e) + ' (DemCost)', 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatCur(sinData.cos_dem_imp), 'Costo Demanda', formatCur(sinData.demand_cost_h_i) + ' (DemCost)', 'right')}</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            
+            `; // End the first block of HTML
 
-                    <!-- CASO CON -->
-                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #3b82f6;">
-                        <div class="res-card-header" style="background: #eff6ff; color: #1e3a8a;">${createTooltipHTML('2. Caso Interconectado (CON)', 'Situación del país despachado regionalmente y considerando su asignación correspondiente de rentas y peajes de la línea de transmisión', 'F(CON) + Peajes ExPost + Δ Rentas')}</div>
-                        <div class="res-card-body" style="padding: 0;">
-                            <table class="res-table">
-                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica Anual</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
-                                <tbody>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Costo Operación + Peaje</td><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatCur(conData.ben_soc_exp), 'Costo Operación + PeajeIny', formatCur(conData.op_cost_h_e) + ' + ' + formatCur(conData.peaje_iny_exp_USD), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em;">${createTooltipHTML(formatCur(conData.ben_soc_imp), 'Costo Operación + PeajeRet', formatCur(conData.op_cost_h_i) + ' + ' + formatCur(conData.peaje_ret_imp_USD), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Ben Gen + Renta - Peaje</td><td style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatCur(conData.ben_gen_exp), 'Profit - PeajeIny + Renta(aI)', formatCur(conData.profit_h_e) + ' - ' + formatCur(conData.peaje_iny_exp_USD) + ' + ' + formatCur(conData.CR_abs * aI), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; color:#15803d;">${createTooltipHTML(formatCur(conData.ben_gen_imp), 'Profit (sin asignación)', formatCur(conData.profit_h_i), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Demanda + Peaje - Renta</td><td style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatCur(conData.cos_dem_exp), 'Demanda (sin asignación)', formatCur(conData.demand_cost_h_e), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; color:#dc2626;">${createTooltipHTML(formatCur(conData.cos_dem_imp), 'Demanda + PeajeRet - Renta(aR)', formatCur(conData.demand_cost_h_i) + ' + ' + formatCur(conData.peaje_ret_imp_USD) + ' - ' + formatCur(conData.CR_abs * aR), 'right')}</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- DELTAS -->
-                    <div class="res-card" style="margin-bottom: 0; border-top: 4px solid #8b5cf6;">
-                        <div class="res-card-header" style="background: #f5f3ff; color: #4c1d95;">${createTooltipHTML('3. Ganadores y perdedores (Δ)', 'Diferencial neto del beneficio/coste entre los escenarios con interconexión frente al aislamiento', 'Valor CON vs Valor SIN')}</div>
-                        <div class="res-card-body" style="padding: 0;">
-                            <table class="res-table">
-                                <thead><tr><th style="padding: 8px 12px; font-size: 0.8em;">Métrica Anual ${siepacExpostMUSD ? '(MUSD)' : '(USD)'}</th><th style="padding: 8px 12px; font-size: 0.8em;">Exp: ${expC}</th><th style="padding: 8px 12px; font-size: 0.8em;">Imp: ${impC}</th></tr></thead>
-                                <tbody>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Operación</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsE < 0 ? 'bold' : 'normal'}; color:${deltaBsE < 0 ? '#16a34a' : '#ef4444'}">${deltaBsE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.ben_soc_exp) + ' - ' + formatExpost(sinData.ben_soc_exp), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBsI < 0 ? 'bold' : 'normal'}; color:${deltaBsI < 0 ? '#16a34a' : '#ef4444'}">${deltaBsI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBsI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.ben_soc_imp) + ' - ' + formatExpost(sinData.ben_soc_imp), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Beneficio Generador</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgE > 0 ? 'bold' : 'normal'}; color:${deltaBgE > 0 ? '#16a34a' : '#ef4444'}">${deltaBgE > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgE) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.ben_gen_exp) + ' - ' + formatExpost(sinData.ben_gen_exp), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaBgI > 0 ? 'bold' : 'normal'}; color:${deltaBgI > 0 ? '#16a34a' : '#ef4444'}">${deltaBgI > 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaBgI) + ')', 'Δ Beneficio (CON - SIN)', formatExpost(conData.ben_gen_imp) + ' - ' + formatExpost(sinData.ben_gen_imp), 'right')}</td></tr>
-                                    <tr><td style="padding: 8px 12px; font-size: 0.85em;">Δ Costo Demanda</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdE < 0 ? 'bold' : 'normal'}; color:${deltaCdE < 0 ? '#16a34a' : '#ef4444'}">${deltaCdE < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdE) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cos_dem_exp) + ' - ' + formatExpost(sinData.cos_dem_exp), 'right')}</td><td style="padding: 8px 12px; font-size: 0.85em; font-weight: ${deltaCdI < 0 ? 'bold' : 'normal'}; color:${deltaCdI < 0 ? '#16a34a' : '#ef4444'}">${deltaCdI < 0 ? 'Ganador' : 'Perdedor'} ${createTooltipHTML('(' + formatExpost(deltaCdI) + ')', 'Δ Costo (CON - SIN)', formatExpost(conData.cos_dem_imp) + ' - ' + formatExpost(sinData.cos_dem_imp), 'right')}</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            contentContainer.innerHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
+                <div style="display:flex; align-items:center; gap: 8px;">
+                    <span style="font-size:0.9em; font-weight:bold; color: #1e3a8a;">Unidad Opciones Ex-Post:</span>
+                    <select id="sie_expost_unit" style="padding:4px; font-weight:bold; cursor:pointer; color: #1e3a8a; border: 1px solid #93c5fd; border-radius: 4px;" onchange="window.siepacExpostMUSD = this.value === 'MUSD'; document.getElementById('sie_recalc').click();">
+                        <option value="MUSD" ${window.siepacExpostMUSD ? 'selected' : ''}>MUSD</option>
+                        <option value="USD" ${!window.siepacExpostMUSD ? 'selected' : ''}>USD</option>
+                    </select>
                 </div>
             </div>
             `;
-
+            contentContainer.innerHTML += generateExPostHTML(1);
+            contentContainer.innerHTML += generateExPostHTML(2);
+            
         document.getElementById('sie_recalc').onclick = () => {
             siepacTargetCountry = document.getElementById('sie_country').value;
             siepacInputs.capex = Number(document.getElementById('sie_capex').value);
@@ -4029,4 +4233,155 @@ async function showMethodologyResults(lineName) {
         }
     }
 
+}
+
+
+// Function to load and display semestral generators summary
+function showGeneratorsSummarySemestral(countryName) {
+    if (!countryName) return;
+
+    const modalId = 'gens-summary-semestral-modal';
+    let modal = createModal(modalId, 2005); // high z-index
+
+    modal.innerHTML = '';
+    modal.style.width = '95%';
+    modal.style.maxWidth = '1400px';
+    modal.style.height = '85vh';
+    modal.style.flexDirection = 'column';
+
+    const headerContainer = document.createElement('div');
+    headerContainer.style.display = 'flex';
+    headerContainer.style.justifyContent = 'space-between';
+    headerContainer.style.alignItems = 'center';
+    headerContainer.style.width = '100%';
+    headerContainer.style.marginBottom = '15px';
+
+    const title = document.createElement('h2');
+    title.textContent = `Resumen de Generación Semestral - ${countryName}`;
+    title.style.margin = '0';
+    title.style.color = '#333';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Cerrar';
+    closeBtn.style.cssText = `
+        padding: 5px 15px;
+        cursor: pointer;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 4px;
+    `;
+    closeBtn.onclick = () => modal.style.display = 'none';
+
+    headerContainer.appendChild(title);
+    headerContainer.appendChild(closeBtn);
+    modal.appendChild(headerContainer);
+
+    const tablesContainer = document.createElement('div');
+    tablesContainer.style.display = 'flex';
+    tablesContainer.style.flexDirection = 'row';
+    tablesContainer.style.gap = '20px';
+    tablesContainer.style.flexGrow = '1';
+    tablesContainer.style.overflow = 'hidden';
+
+    const createSemestralTable = (titleText) => {
+        const container = document.createElement('div');
+        container.style.flex = '1';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.overflowY = 'auto';
+        container.style.border = '1px solid #ddd';
+        container.style.borderRadius = '4px';
+        container.style.background = '#fafafa';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = titleText;
+        h3.style.textAlign = 'center';
+        h3.style.margin = '10px 0';
+
+        const table = document.createElement('table');
+        table.style.cssText = `
+            width: 100%;
+            border-collapse: collapse;
+            font-family: sans-serif;
+            font-size: 0.8em;
+        `;
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr style="background-color: #f2f2f2; text-align: left;">
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Nombre Nodo</th>
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Tecnología</th>
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Producción (MWh)</th>
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Revenue (USD)</th>
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Var Cost (USD)</th>
+                <th style="padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; background: #eee;">Profit (USD)</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+
+        container.appendChild(h3);
+        container.appendChild(table);
+        return { container, tbody };
+    };
+
+    const s1 = createSemestralTable('Semestre 1');
+    const s2 = createSemestralTable('Semestre 2');
+
+    tablesContainer.appendChild(s1.container);
+    tablesContainer.appendChild(s2.container);
+    modal.appendChild(tablesContainer);
+
+    ['energy-chart-modal', 'flow-chart-modal', 'gen-chart-modal', 'mc-chart-modal', 'gens-summary-modal'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m) m.style.display = 'none';
+    });
+
+    modal.style.display = 'flex';
+
+    const scenario = document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0';
+
+    const populateTable = (tbody, gens) => {
+        if (!gens || gens.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #777;">No hay datos</td></tr>`;
+            return;
+        }
+        gens.sort((a, b) => a.tech.localeCompare(b.tech) || a.name.localeCompare(b.name));
+        let rowsHtml = '';
+        gens.forEach(g => {
+            const formatNumber = (num, min=0, max=2) => {
+                const val = Number(num);
+                if (isNaN(val)) return '0.00';
+                return val.toLocaleString(undefined, { minimumFractionDigits: min, maximumFractionDigits: max });
+            };
+            rowsHtml += `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px;">${g.name}</td>
+                    <td style="padding: 10px;">${g.tech}</td>
+                    <td style="padding: 10px;">${formatNumber(g.prod, 2, 2)}</td>
+                    <td style="padding: 10px; color: green;">$${formatNumber(g.rev, 2, 2)}</td>
+                    <td style="padding: 10px; color: red;">-$${formatNumber(g.total_var_cost, 2, 2)}</td>
+                    <td style="padding: 10px; font-weight: bold; color: ${g.profit >= 0 ? '#1b5e20' : '#b71c1c'}">
+                        $${formatNumber(g.profit, 2, 2)}
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = rowsHtml;
+    };
+
+    Promise.all([
+        fetch('/api/generators-sem1?scenario=' + scenario).then(res => res.ok ? res.json() : null),
+        fetch('/api/generators-sem2?scenario=' + scenario).then(res => res.ok ? res.json() : null)
+    ])
+    .then(([data1, data2]) => {
+        populateTable(s1.tbody, data1 ? (data1[countryName] || []) : []);
+        populateTable(s2.tbody, data2 ? (data2[countryName] || []) : []);
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error cargando el resumen semestral.");
+        modal.style.display = 'none';
+    });
 }

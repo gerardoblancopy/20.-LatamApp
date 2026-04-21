@@ -45,6 +45,8 @@ def extract_demand():
             df_cm = pd.DataFrame()
 
         out_demanda = {}
+        out_demanda_s1 = {}
+        out_demanda_s2 = {}
         for col in df_demanda.columns:
             if col in node_to_country:
                 pais = node_to_country[col]
@@ -52,32 +54,49 @@ def extract_demand():
                 try:
                     dem_series = pd.to_numeric(df_demanda[col], errors='coerce').fillna(0)
                     
-                    # Sample every 100 points like the model, and multiply by 100 for the total volume
                     dem_sliced = dem_series.iloc[::100].values
                     total_demand = float(dem_sliced.sum() * 100)
                     
+                    mid = len(dem_sliced) // 2
+                    dem_s1 = dem_sliced[:mid]
+                    dem_s2 = dem_sliced[mid:]
+                    
+                    total_dem_s1 = float(dem_s1.sum() * 100)
+                    total_dem_s2 = float(dem_s2.sum() * 100)
+                    
                     demand_cost = 0.0
+                    demand_cost_s1 = 0.0
+                    demand_cost_s2 = 0.0
                     cm_col = 'Barra ' + str(col)
                     if not df_cm.empty and cm_col in df_cm.columns:
                         cm_node = df_cm[cm_col].values
                         if len(dem_sliced) == len(cm_node):
                             demand_cost = float((dem_sliced * cm_node * 100).sum())
+                            cm_s1 = cm_node[:mid]
+                            cm_s2 = cm_node[mid:]
+                            demand_cost_s1 = float((dem_s1 * cm_s1 * 100).sum())
+                            demand_cost_s2 = float((dem_s2 * cm_s2 * 100).sum())
                         else:
                             print(f"Warning: Dimension mismatch for {col}. 'dem_sliced' length: {len(dem_sliced)} vs 'cm_node' length: {len(cm_node)}.")
                     
                     if pais not in out_demanda:
                         out_demanda[pais] = []
-                    out_demanda[pais].append({
-                        'node': col,
-                        'demand': float(total_demand),
-                        'demand_cost': demand_cost
-                    })
+                        out_demanda_s1[pais] = []
+                        out_demanda_s2[pais] = []
+                        
+                    out_demanda[pais].append({'node': col, 'demand': float(total_demand), 'demand_cost': demand_cost})
+                    out_demanda_s1[pais].append({'node': col, 'demand': total_dem_s1, 'demand_cost': demand_cost_s1})
+                    out_demanda_s2[pais].append({'node': col, 'demand': total_dem_s2, 'demand_cost': demand_cost_s2})
                 except Exception as ex:
                     print(f"Error summing demand for {col}: {ex}")
                     
         with open(os.path.join(directorio, 'demand_summary.json'), 'w', encoding='utf-8') as f:
             json.dump(out_demanda, f, indent=2, ensure_ascii=False)
-        print("demand_summary.json created successfully.")
+        with open(os.path.join(directorio, 'demand_summary_sem1.json'), 'w', encoding='utf-8') as f:
+            json.dump(out_demanda_s1, f, indent=2, ensure_ascii=False)
+        with open(os.path.join(directorio, 'demand_summary_sem2.json'), 'w', encoding='utf-8') as f:
+            json.dump(out_demanda_s2, f, indent=2, ensure_ascii=False)
+        print("demand_summary (Global, Sem1, Sem2) created successfully.")
             
     except Exception as e:
         print(f"Error reading Demanda: {e}")

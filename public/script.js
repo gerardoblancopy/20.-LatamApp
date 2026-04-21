@@ -1073,6 +1073,29 @@ function onEachFeature(feature, layer) {
             };
             menu.appendChild(item4);
 
+            // Item 4b: Generators Summary Semestral
+            const item4b = document.createElement('div');
+            item4b.textContent = 'Resumen de Generación Semestral';
+            item4b.style.padding = '5px';
+            item4b.style.borderRadius = '4px';
+            item4b.onmouseover = () => item4b.style.background = MENU_THEME.hover;
+            item4b.onmouseout = () => item4b.style.background = MENU_THEME.bg;
+            item4b.onclick = () => {
+                const codeMap = {
+                    'ARG': 'AR', 'BOL': 'BO', 'BRA': 'BR', 'CHL': 'CL',
+                    'COL': 'CO', 'ECU': 'EC', 'PRY': 'PY', 'PER': 'PE',
+                    'URY': 'UY', 'VEN': 'VZ', 'MEX': 'MX', 'GTM': 'GU',
+                    'SLV': 'ES', 'HND': 'HN', 'NIC': 'NI', 'CRI': 'CR',
+                    'PAN': 'PA', 'BLZ': 'BE'
+                };
+                const queryCode = codeMap[countryId] || countryId;
+                if (typeof showGeneratorsSummarySemestral === 'function') {
+                    showGeneratorsSummarySemestral(queryCode);
+                }
+                document.body.removeChild(menu);
+            };
+            menu.appendChild(item4b);
+
             // Item 5: Demand Summary
             const item5 = document.createElement('div');
             item5.textContent = 'Resumen de la demanda';
@@ -1808,6 +1831,7 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
         inversiones_intx: document.getElementById('inversiones_intx').value,
         inversiones_gx: document.getElementById('inversiones_gx').value,
         demanda_tipo: document.getElementById('demanda_tipo').value,
+        solver: document.getElementById('solver').value,
         sincarbonCL: document.getElementById('sincarbonCL').checked,
         bloquear_invtx_nacional: document.getElementById('bloquear_invtx_nacional').checked,
         bloquear_invtx_existenteinternacional: document.getElementById('bloquear_invtx_existenteinternacional').checked,

@@ -1,0 +1,253 @@
+{
+  "CL": [
+    {
+      "node": "CL_NORTE",
+      "demand": 14367214.164584188,
+      "demand_cost": 1980777163.201347
+    },
+    {
+      "node": "CL_CENTRO",
+      "demand": 21385777.496853065,
+      "demand_cost": 3032320593.276918
+    },
+    {
+      "node": "CL_SUR",
+      "demand": 6255653.483900162,
+      "demand_cost": 852039469.0758585
+    }
+  ],
+  "PE": [
+    {
+      "node": "PE_NORTE",
+      "demand": 22669036.132397313,
+      "demand_cost": 2698323729.212579
+    },
+    {
+      "node": "PE_SUR",
+      "demand": 9500047.90543862,
+      "demand_cost": 1349501561.6446586
+    }
+  ],
+  "BR": [
+    {
+      "node": "BR_FC",
+      "demand": 0.0,
+      "demand_cost": 0.0
+    },
+    {
+      "node": "BR_NORTE",
+      "demand": 37777287.87068508,
+      "demand_cost": 5247643006.765754
+    },
+    {
+      "node": "BR_NORESTE",
+      "demand": 69232860.67873211,
+      "demand_cost": 7918178212.634192
+    },
+    {
+      "node": "BR_SUDESTE/CO",
+      "demand": 205615603.3729123,
+      "demand_cost": 28534607214.21127
+    },
+    {
+      "node": "BR_SUR",
+      "demand": 63526668.73180301,
+      "demand_cost": 8790698002.879267
+    }
+  ],
+  "CO": [
+    {
+      "node": "CO_NORTE",
+      "demand": 26874029.084434032,
+      "demand_cost": 2905808054.737781
+    },
+    {
+      "node": "CO_SUR",
+      "demand": 16471179.116265962,
+      "demand_cost": 1781035479.5405877
+    }
+  ],
+  "BO": [
+    {
+      "node": "BO_ESTE",
+      "demand": 2957056.772052639,
+      "demand_cost": 85021374.33035605
+    },
+    {
+      "node": "BO_NOROESTE",
+      "demand": 2957709.1500112237,
+      "demand_cost": 372588987.9446562
+    },
+    {
+      "node": "BO_SUR",
+      "demand": 467711.9849495148,
+      "demand_cost": 58914321.73357476
+    }
+  ],
+  "PY": [
+    {
+      "node": "PY_NORTE",
+      "demand": 1535008.4276479366,
+      "demand_cost": 213590287.6952442
+    },
+    {
+      "node": "PY_SUR",
+      "demand": 986791.132059388,
+      "demand_cost": 137294407.93601376
+    },
+    {
+      "node": "PY_CENTRO/OESTE",
+      "demand": 6578607.547062586,
+      "demand_cost": 915325118.4865988
+    },
+    {
+      "node": "PY_ESTE",
+      "demand": 1863938.805001066,
+      "demand_cost": 259327186.07492635
+    }
+  ],
+  "AR": [
+    {
+      "node": "NOA_CEN_LIT",
+      "demand": 28036410.075145617,
+      "demand_cost": 4563270313.91401
+    },
+    {
+      "node": "COM_CUY",
+      "demand": 12683395.815914,
+      "demand_cost": 2048248252.4461076
+    },
+    {
+      "node": "MERCADO",
+      "demand": 38720472.535930835,
+      "demand_cost": 6442073252.990451
+    }
+  ],
+  "UY": [
+    {
+      "node": "URUGUAY",
+      "demand": 5929858.9283601735,
+      "demand_cost": 995128646.5576112
+    }
+  ],
+  "EC": [
+    {
+      "node": "EC_NORTE",
+      "demand": 7040861.3068572655,
+      "demand_cost": 864553572.8299036
+    },
+    {
+      "node": "EC_SUR",
+      "demand": 9591650.651353039,
+      "demand_cost": 1177792159.7933395
+    }
+  ],
+  "GU": [
+    {
+      "node": "GU_NORTE",
+      "demand": 585261.8561289646,
+      "demand_cost": 164222639.33103606
+    },
+    {
+      "node": "GU_SUR",
+      "demand": 4402317.539801743,
+      "demand_cost": 1235275539.387171
+    },
+    {
+      "node": "GU_ESTE",
+      "demand": 553396.4812346541,
+      "demand_cost": 155276355.83306396
+    },
+    {
+      "node": "GU_OESTE",
+      "demand": 1184142.1228346375,
+      "demand_cost": 332247498.0755289
+    }
+  ],
+  "ES": [
+    {
+      "node": "ES_OCCIDENTAL",
+      "demand": 3230736.5147583284,
+      "demand_cost": 908549220.954066
+    },
+    {
+      "node": "ES_ORIENTAL",
+      "demand": 588480.3931183441,
+      "demand_cost": 165491087.0016316
+    }
+  ],
+  "HN": [
+    {
+      "node": "HN_NORTE",
+      "demand": 3597542.871075786,
+      "demand_cost": 1011939638.2831906
+    },
+    {
+      "node": "HN_SUR",
+      "demand": 2398361.9140505246,
+      "demand_cost": 674639437.6303877
+    }
+  ],
+  "NI": [
+    {
+      "node": "NI_NORTE",
+      "demand": 1970237.2199148794,
+      "demand_cost": 554785785.8215537
+    },
+    {
+      "node": "NI_SUR",
+      "demand": 804744.7799652322,
+      "demand_cost": 226599754.37778047
+    }
+  ],
+  "CR": [
+    {
+      "node": "CR_NORTE",
+      "demand": 2207139.287889043,
+      "demand_cost": 591990413.2320315
+    },
+    {
+      "node": "CR_SUR",
+      "demand": 3601121.996029491,
+      "demand_cost": 965907149.3820304
+    }
+  ],
+  "PA": [
+    {
+      "node": "PA_NORTE",
+      "demand": 4408508.439310794,
+      "demand_cost": 1130804482.5265222
+    },
+    {
+      "node": "PA_SUR",
+      "demand": 2074592.2067344908,
+      "demand_cost": 532150233.06030697
+    }
+  ],
+  "VZ": [
+    {
+      "node": "VZ_NORTE",
+      "demand": 33173631.679103225,
+      "demand_cost": 2716354354.3591547
+    },
+    {
+      "node": "VZ_SUR",
+      "demand": 8293407.919775821,
+      "demand_cost": 540460490.0941867
+    }
+  ],
+  "MX": [
+    {
+      "node": "MX_SUR",
+      "demand": 180747091.3473252,
+      "demand_cost": 49075231350.69046
+    }
+  ],
+  "BE": [
+    {
+      "node": "BELICE",
+      "demand": 309400.0,
+      "demand_cost": 39958691.808716156
+    }
+  ]
+}
