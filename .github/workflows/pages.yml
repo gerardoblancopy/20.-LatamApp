@@ -1,0 +1,57 @@
+name: Publicar en GitHub Pages
+
+# Genera el sitio estático (public/ + respuestas de la API como JSON) y lo publica.
+# "Ejecutar modelo" también lo llama al terminar: los commits hechos con GITHUB_TOKEN
+# no disparan el evento push.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # La punta de la rama y no el commit que disparó el workflow, para incluir
+          # los resultados que "Ejecutar modelo" acaba de guardar
+          ref: ${{ github.ref }}
+          # Historial completo: la fecha de "Última simulación" sale de git log
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generar sitio estático
+        run: node scripts/build_static_site.js _site
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -178,7 +178,7 @@ function showGenerationChart(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/generation?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/generation?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No available generation data");
             return res.json();
@@ -375,7 +375,7 @@ function showFlowChart(lineNames) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(response => {
             if (!response.ok) throw new Error("No flow data available");
             return response.json();
@@ -510,7 +510,7 @@ function showEnergySummary(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/generation?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/generation?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => res.json())
         .then(data => {
             const summaryData = data.energy_summary ? data.energy_summary[countryName] : null;
@@ -716,7 +716,7 @@ function showMarginalCostsChart(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No available marginal costs data");
             return res.json();
@@ -871,8 +871,8 @@ function showLineMarginalCostsChart(line) {
     modal.style.display = 'flex';
 
     Promise.all([
-        fetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : Promise.reject("No available marginal costs data")),
-        fetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
+        apiFetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : Promise.reject("No available marginal costs data")),
+        apiFetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
     ])
         .then(([data, flowData]) => {
             const timeSteps = data.time_steps;
@@ -1095,7 +1095,7 @@ function showGeneratorsSummary(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/generators?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/generators?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No data available");
             return res.json();
@@ -1288,7 +1288,7 @@ function showStorageSummary(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/storage?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/storage?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No data available");
             return res.json();
@@ -1443,7 +1443,7 @@ function showDemandSummary(countryName) {
 
     modal.style.display = 'flex';
 
-    fetch('/api/demand?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/demand?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No data available");
             return res.json();
@@ -1601,9 +1601,9 @@ function showTransmissionSummary(countryCode) {
     modal.style.display = 'flex';
 
     Promise.all([
-        fetch('/api/lines?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : []),
-        fetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null),
-        fetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
+        apiFetch('/api/lines?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : []),
+        apiFetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null),
+        apiFetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
     ])
         .then(([lines, mcData, flowData]) => {
             let nationalLines = lines.filter(l => l.start && l.end && l.start.country === countryCode && l.end.country === countryCode);
@@ -1890,11 +1890,11 @@ function showCountrySummary(countryCode) {
     modal.style.display = 'flex';
 
     Promise.all([
-        fetch('/api/generators?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : {}),
-        fetch('/api/demand?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : {}),
-        fetch('/api/lines?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : []),
-        fetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null),
-        fetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
+        apiFetch('/api/generators?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : {}),
+        apiFetch('/api/demand?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : {}),
+        apiFetch('/api/lines?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : []),
+        apiFetch('/api/marginal-costs?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null),
+        apiFetch('/api/flows?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0')).then(res => res.ok ? res.json() : null).catch(() => null)
     ])
         .then(([genData, demData, lines, mcData, flowData]) => {
 
@@ -2117,7 +2117,7 @@ function showTxInvestmentSummary() {
 
     modal.style.display = 'flex';
 
-    fetch('/api/tx-investment?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
+    apiFetch('/api/tx-investment?scenario=' + (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S0'))
         .then(res => {
             if (!res.ok) throw new Error("No data available");
             return res.json();
@@ -2355,7 +2355,7 @@ async function showMethodologyResults(lineName) {
 
     // Fetch and Process Logic
     try {
-        const fetchJson = async (url) => { const res = await fetch(url); return res.ok ? res.json() : null; };
+        const fetchJson = async (url) => { const res = await apiFetch(url); return res.ok ? res.json() : null; };
 
         let targetScenario = (document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S1');
         const marginalLatam = await fetchJson('/api/latam-marginal-analysis');
@@ -4372,8 +4372,8 @@ function showGeneratorsSummarySemestral(countryName) {
     };
 
     Promise.all([
-        fetch('/api/generators-sem1?scenario=' + scenario).then(res => res.ok ? res.json() : null),
-        fetch('/api/generators-sem2?scenario=' + scenario).then(res => res.ok ? res.json() : null)
+        apiFetch('/api/generators-sem1?scenario=' + scenario).then(res => res.ok ? res.json() : null),
+        apiFetch('/api/generators-sem2?scenario=' + scenario).then(res => res.ok ? res.json() : null)
     ])
     .then(([data1, data2]) => {
         populateTable(s1.tbody, data1 ? (data1[countryName] || []) : []);
