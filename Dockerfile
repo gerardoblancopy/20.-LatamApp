@@ -23,7 +23,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 3. Copiar el resto del repositorio
-COPY . .
+# Hugging Face ejecuta el contenedor como UID 1000: sin --chown, el modelo no puede
+# escribir resultados en data/scenarios/ (PermissionError al guardar los .xlsx/.json)
+COPY --chown=1000:1000 . .
 
 # Variables de Entorno esperadas por Hugging Face Spaces
 ENV PORT=7860

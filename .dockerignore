@@ -8,3 +8,4 @@ data/analysis/
 *.bak
 vercel.json
 legacy/
+_site/

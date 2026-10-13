@@ -1,0 +1,138 @@
+name: Ejecutar modelo
+
+# Corre el modelo de optimización con los parámetros del formulario "Run workflow",
+# guarda los resultados en data/scenarios/ y vuelve a publicar la página.
+# Las descripciones coinciden con las instrucciones que muestra la página publicada
+# (showStaticRunInstructions en public/script.js).
+on:
+  workflow_dispatch:
+    inputs:
+      escenarios:
+        description: Escenarios a ejecutar
+        type: choice
+        options: ["S0 y S1", S0, S1]
+        default: "S0 y S1"
+      year_obj:
+        description: Año Objetivo
+        type: choice
+        options: ["2025", "2040"]
+        default: "2025"
+      costo_combustible:
+        description: Costo Combustible
+        type: choice
+        options: [Cst_med, Cst_alto, Cst_bajo]
+        default: Cst_med
+      hidrologia:
+        description: Hidrología
+        type: choice
+        options: [H_media, H_niño, H_niña]
+        default: H_media
+      inversiones_intx:
+        description: Inversiones Intx
+        type: choice
+        options: [Con_intx, Sin_intx]
+        default: Con_intx
+      inversiones_gx:
+        description: Inversiones Gx
+        type: choice
+        options: [Sin_gx, Con_gx]
+        default: Sin_gx
+      demanda_tipo:
+        description: Tipo de Demanda
+        type: choice
+        options: [Dem_base, Dem_elec]
+        default: Dem_base
+      linea_obj:
+        description: "Línea candidata fija en S1 (ID numérico; vacío: la elige el solver)"
+        type: string
+        required: false
+        default: ""
+      sincarbonCL:
+        description: Sin Carbón CL
+        type: boolean
+        default: false
+      bloquear_invtx_nacional:
+        description: Bloquear InvTx Nacional
+        type: boolean
+        default: true
+      bloquear_invtx_existenteinternacional:
+        description: Bloq. InvTx Existente Int.
+        type: boolean
+        default: true
+      flux0_internacional_candidata:
+        description: Flux0 Int. Candidata
+        type: boolean
+        default: false
+      ordendemerito:
+        description: Orden de Mérito
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+# Una corrida a la vez: todas escriben en los mismos archivos de data/scenarios/
+concurrency:
+  group: run-model
+  cancel-in-progress: false
+
+jobs:
+  model:
+    name: Ejecutar modelo
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      # Se guarda la planilla en caché para no gastar ancho de banda de Git LFS en cada corrida.
+      # El archivo sin descargar es el puntero LFS, así que su hash cambia si cambia la planilla.
+      - uses: actions/cache@v6
+        with:
+          path: .git/lfs/objects
+          key: lfs-planilla-${{ hashFiles('data/input/MODELO PLANTILLA DE DATOS V9_INTx.xlsx') }}
+
+      - name: Descargar planilla de entrada (Git LFS)
+        run: |
+          git lfs install --local
+          git lfs pull --include "data/input/MODELO PLANTILLA DE DATOS V9_INTx.xlsx"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar modelo
+        env:
+          INPUTS_JSON: ${{ toJSON(inputs) }}
+        run: python scripts/run_model_ci.py
+
+      - name: Guardar resultados
+        env:
+          INPUTS_JSON: ${{ toJSON(inputs) }}
+          ESCENARIOS: ${{ inputs.escenarios }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898499+github-actions[bot]@users.noreply.github.com"
+          git add data/scenarios
+          if git diff --cached --quiet; then
+            echo "Los resultados no cambiaron."
+            exit 0
+          fi
+          git commit -m "Resultados del modelo: $ESCENARIOS (ejecutado por $GITHUB_ACTOR)" -m "Parámetros: $INPUTS_JSON"
+          GIT_LFS_SKIP_SMUDGE=1 git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+  publish:
+    name: Publicar página
+    needs: model
+    # Pages solo se publica desde la rama principal
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

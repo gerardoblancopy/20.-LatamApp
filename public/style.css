@@ -629,6 +629,12 @@ button[onclick*="config"]:hover {
   display: none;
 }
 
+#console-output a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 /* ── Tooltips ──────────────────────────────────────────────── */
 
 .custom-tooltip {

@@ -387,9 +387,12 @@ app.get('/api/tx-investment', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+// Solo escucha al ejecutarse directamente; scripts/build_static_site.js importa la app
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running at http://localhost:${PORT}`);
+    });
+}
 
 // Endpoint to clear results
 app.post('/api/clear-results', (req, res) => {
@@ -453,3 +456,5 @@ app.get('/api/marginal-costs', (req, res) => {
         res.status(404).json({ error: 'Marginal costs not found. Run model first.' });
     }
 });
+
+module.exports = app;

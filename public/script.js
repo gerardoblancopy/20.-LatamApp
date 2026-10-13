@@ -1221,7 +1221,8 @@ let lineLayers = [];
 let flowLineLayers = [];
 let flowArrowLayers = [];
 let flowArrowAnimationFrame = null;
-let flowAnimationsEnabledBySimulation = false;
+// En el sitio estático los resultados publicados ya vienen de una corrida en GitHub Actions
+let flowAnimationsEnabledBySimulation = isStaticMode();
 let lastOptimizationLineObjId = null;
 let lastOptimizationLineName = null;
 
@@ -1252,11 +1253,11 @@ function loadLines() {
     const scenario = document.getElementById('visualize-scenario') ? document.getElementById('visualize-scenario').value : 'S1';
     console.log(`Loading lines for scenario ${scenario}...`);
     Promise.all([
-        fetch('/api/lines?scenario=' + scenario).then(response => {
+        apiFetch('/api/lines?scenario=' + scenario).then(response => {
             if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             return response.json();
         }),
-        fetch('/api/flows?scenario=' + scenario)
+        apiFetch('/api/flows?scenario=' + scenario)
             .then(response => response.ok ? response.json() : null)
             .catch(() => null)
     ])
@@ -1625,7 +1626,7 @@ function loadLines() {
                 if (resetBtn) resetBtn.style.display = 'block';
 
                 // Fetch timestamp
-                fetch('/api/model-status')
+                apiFetch('/api/model-status')
                     .then(r => r.json())
                     .then(statusData => {
                         const timeEl = document.getElementById('model-timestamp');
@@ -1817,6 +1818,51 @@ if (viewRemunerationBtn) {
     });
 }
 
+// En GitHub Pages no hay servidor: el modelo se ejecuta con el workflow "Ejecutar modelo"
+// de GitHub Actions, que vuelve a publicar esta página con los resultados al terminar.
+// Los textos coinciden con las descripciones de los inputs en .github/workflows/run-model.yml.
+function showStaticRunInstructions(consoleEl, config, scenarios) {
+    const check = (value) => (value ? '[x]' : '[ ]');
+    const lineaObj = config.linea_obj !== null
+        ? String(config.linea_obj) + (window.fixedLineaObjName ? ` (${window.fixedLineaObjName})` : '')
+        : '(vacío: la elige el solver)';
+
+    consoleEl.textContent = [
+        'Esta versión publicada no ejecuta el modelo en el navegador.',
+        'Abre el enlace de abajo, pulsa "Run workflow" e ingresa estos valores.',
+        'Los resultados aparecen en esta página unos minutos después de que termine.',
+        '',
+        `Escenarios a ejecutar: ${scenarios.join(' y ')}`,
+        `Año Objetivo: ${config.year_obj}`,
+        `Costo Combustible: ${config.costo_combustible}`,
+        `Hidrología: ${config.hidrologia}`,
+        `Inversiones Intx: ${config.inversiones_intx}`,
+        `Inversiones Gx: ${config.inversiones_gx}`,
+        `Tipo de Demanda: ${config.demanda_tipo}`,
+        `Línea candidata fija en S1: ${lineaObj}`,
+        `${check(config.sincarbonCL)} Sin Carbón CL`,
+        `${check(config.bloquear_invtx_nacional)} Bloquear InvTx Nacional`,
+        `${check(config.bloquear_invtx_existenteinternacional)} Bloq. InvTx Existente Int.`,
+        `${check(config.flux0_internacional_candidata)} Flux0 Int. Candidata`,
+        `${check(config.ordendemerito)} Orden de Mérito`,
+        '',
+        'Solver: HiGHS (Gurobi no está disponible en GitHub Actions).',
+        ''
+    ].join('\n');
+
+    const link = document.createElement('a');
+    link.href = window.LATAM_RUNTIME.runModelUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Abrir "Ejecutar modelo" en GitHub Actions';
+    consoleEl.appendChild(link);
+    consoleEl.style.display = 'block';
+}
+
+if (isStaticMode()) {
+    document.getElementById('run-model-btn').textContent = 'Ejecutar Modelo (GitHub Actions)';
+}
+
 // Button Event Listener
 document.getElementById('run-model-btn').addEventListener('click', async () => {
     const btn = document.getElementById('run-model-btn');
@@ -1848,6 +1894,11 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
 
     if (scenariosToRun.length === 0) {
         alert("Por favor seleccione al menos un escenario para ejecutar.");
+        return;
+    }
+
+    if (isStaticMode()) {
+        if (consoleOutput) showStaticRunInstructions(consoleOutput, baseConfigData, scenariosToRun);
         return;
     }
 
