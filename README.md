@@ -38,6 +38,20 @@ Aplicación web para simulación y visualización de interconexiones eléctricas
 4. Abrir en navegador:
    `http://localhost:3005`
 
+## Publicación (GitHub Pages + GitHub Actions)
+
+La versión pública es un sitio estático en GitHub Pages; el modelo se ejecuta en GitHub Actions.
+
+- **Activar Pages (una sola vez):** en el repositorio, *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+- **Publicar:** cada push a `master` corre el workflow *Publicar en GitHub Pages*
+  (`.github/workflows/pages.yml`), que genera el sitio con `node scripts/build_static_site.js`.
+- **Ejecutar el modelo:** *Actions → Ejecutar modelo → Run workflow*, con los mismos parámetros del
+  modal de configuración. Corre `data_processing.py` con HiGHS, guarda los resultados en
+  `data/scenarios/` y vuelve a publicar la página. Requiere permiso de escritura en el repositorio.
+
+Para probar el sitio estático en local: `node scripts/build_static_site.js` y servir `_site/`
+(por ejemplo `python3 -m http.server -d _site`).
+
 ## Notas de operación
 
 - El backend lee y escribe escenarios en `data/scenarios/<escenario>/`.
