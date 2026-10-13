@@ -12,6 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 
 app.use(cors());
+
+// Configuración del frontend. La API key de CARTO (mapa base) viene del entorno o de .env;
+// el sitio estático la recibe igual desde scripts/build_static_site.js.
+app.get('/runtime_config.js', (req, res) => {
+    const runtime = { staticMode: false, cartoApiKey: process.env.CARTO_API_KEY || '' };
+    res.type('application/javascript').send(`window.LATAM_RUNTIME = ${JSON.stringify(runtime)};\n`);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json()); // Enable JSON body parsing
 

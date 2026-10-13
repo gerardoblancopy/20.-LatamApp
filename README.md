@@ -66,6 +66,19 @@ guardados en el repositorio (también los muestra Vercel en su siguiente desplie
 Para probar el sitio estático en local: `node scripts/build_static_site.js` y servir `_site/`
 (por ejemplo `python3 -m http.server -d _site`).
 
+## Mapa base (CARTO)
+
+El mapa usa los tiles *Dark Matter* de CARTO, que desde agosto de 2026 exigen una
+[API key de basemaps](https://carto.com/basemaps/apikey/); sin ella cada tile sale con la marca
+"API KEY REQUIRED". La key se lee de la variable `CARTO_API_KEY`:
+
+- **Local / Docker:** en el entorno o en `.env` (`CARTO_API_KEY=...`); `server.js` la entrega en `/runtime_config.js`.
+- **Vercel:** variable de entorno `CARTO_API_KEY` del proyecto (Production y Preview), y volver a desplegar.
+- **GitHub Pages:** secret del repositorio `CARTO_API_KEY` (*Settings → Secrets and variables → Actions*).
+
+La key queda visible en las URLs de los tiles, así que conviene restringirla en CARTO a los dominios
+del sitio (`latam-interconexion-app.vercel.app`, `gerardoblancopy.github.io`, `localhost`).
+
 ## Notas de operación
 
 - El backend lee y escribe escenarios en `data/scenarios/<escenario>/`.

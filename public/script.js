@@ -841,11 +841,18 @@ function renderNetworkNodes(lines) {
     scheduleNodeLabelDeclutter();
 }
 
-// Add CartoDB Dark Matter tile layer
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
+// Add CartoDB Dark Matter tile layer. CARTO exige API key para sus mapas base (desde
+// agosto de 2026); sin ella cada tile sale con la marca "API KEY REQUIRED".
+const cartoApiKey = (window.LATAM_RUNTIME && window.LATAM_RUNTIME.cartoApiKey) || '';
+if (!cartoApiKey) {
+    console.warn('CARTO_API_KEY no está configurada: el mapa base mostrará la marca "API KEY REQUIRED".');
+}
+L.tileLayer('https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key={apikey}', {
+    apikey: encodeURIComponent(cartoApiKey),
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    // Envía el origen del sitio con cada tile, para que se acepte una key restringida por dominio
+    referrerPolicy: 'strict-origin-when-cross-origin'
 }).addTo(map);
 
 map.on('zoomend moveend', refreshNetworkNodePositions);

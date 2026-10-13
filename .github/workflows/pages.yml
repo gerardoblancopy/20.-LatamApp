@@ -38,6 +38,8 @@ jobs:
       - run: npm ci
 
       - name: Generar sitio estático
+        env:
+          CARTO_API_KEY: ${{ secrets.CARTO_API_KEY }}
         run: node scripts/build_static_site.js _site
 
       - uses: actions/configure-pages@v6
