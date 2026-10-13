@@ -38,9 +38,23 @@ Aplicación web para simulación y visualización de interconexiones eléctricas
 4. Abrir en navegador:
    `http://localhost:3005`
 
-## Publicación (GitHub Pages + GitHub Actions)
+## Publicación en Vercel
 
-La versión pública es un sitio estático en GitHub Pages; el modelo se ejecuta en GitHub Actions.
+La página es estática y el botón *Ejecutar Modelo* llama a la función `api/run_model.py`, que corre
+`data_processing.py` (con HiGHS) en una carpeta temporal y transmite el log en vivo. Configuración
+en `vercel.json`.
+
+- **Publicar:** cada push a `master` publica en producción; cada rama tiene su vista previa.
+- **Resultados de una ejecución:** se ven solo en la pestaña de quien la lanzó. Al recargar se vuelve
+  a los resultados publicados (`data/scenarios/`), que se actualizan con el workflow *Ejecutar modelo*
+  de GitHub Actions (abajo).
+- **Límites del plan gratuito:** 300 s por escenario (hoy toma unos 2,5 minutos) y una cuota mensual de CPU.
+- **Git LFS** debe estar activado en el proyecto de Vercel: la planilla de entrada está en LFS.
+
+## Publicación en GitHub Pages + GitHub Actions
+
+Versión estática en GitHub Pages; el modelo se ejecuta en GitHub Actions y sus resultados quedan
+guardados en el repositorio (también los muestra Vercel en su siguiente despliegue).
 
 - **Activar Pages (una sola vez):** en el repositorio, *Settings → Pages → Build and deployment → Source: GitHub Actions*.
 - **Publicar:** cada push a `master` corre el workflow *Publicar en GitHub Pages*
