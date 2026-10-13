@@ -37,7 +37,7 @@
     {
       "node": "BR_NORTE",
       "demand": 75363235.5411153,
-      "demand_cost": 10515772476.662712
+      "demand_cost": 10515772476.66271
     },
     {
       "node": "BR_NORESTE",
@@ -240,7 +240,7 @@
     {
       "node": "MX_SUR",
       "demand": 355773347.72844064,
-      "demand_cost": 96231567797.04877
+      "demand_cost": 96231567797.04875
     }
   ],
   "BE": [
