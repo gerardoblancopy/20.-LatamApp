@@ -1626,14 +1626,16 @@ function loadLines() {
                 if (resetBtn) resetBtn.style.display = 'block';
 
                 // Fetch timestamp
-                apiFetch('/api/model-status')
+                apiFetch('/api/model-status?scenario=' + scenario)
                     .then(r => r.json())
                     .then(statusData => {
                         const timeEl = document.getElementById('model-timestamp');
                         if (timeEl && statusData.lastRun) {
                             const date = new Date(statusData.lastRun);
                             timeEl.style.display = 'block';
-                            timeEl.textContent = `Última simulación: ${date.toLocaleString()}`;
+                            timeEl.textContent = statusData.local
+                                ? `Tu simulación: ${date.toLocaleString()} (solo en esta pestaña; al recargar vuelves a los resultados publicados)`
+                                : `Última simulación: ${date.toLocaleString()}`;
                         }
                     })
                     .catch(e => console.error("Error fetching timestamp", e));
@@ -1820,6 +1822,11 @@ if (viewRemunerationBtn) {
 
 // En GitHub Pages no hay servidor: el modelo se ejecuta con el workflow "Ejecutar modelo"
 // de GitHub Actions, que vuelve a publicar esta página con los resultados al terminar.
+// En Vercel, en cambio, /api/run-model es una función que ejecuta el modelo (api/run_model.py).
+function runsModelInGitHubActions() {
+    return isStaticMode() && window.LATAM_RUNTIME.runModel === 'actions';
+}
+
 // Los textos coinciden con las descripciones de los inputs en .github/workflows/run-model.yml.
 function showStaticRunInstructions(consoleEl, config, scenarios) {
     const check = (value) => (value ? '[x]' : '[ ]');
@@ -1859,7 +1866,7 @@ function showStaticRunInstructions(consoleEl, config, scenarios) {
     consoleEl.style.display = 'block';
 }
 
-if (isStaticMode()) {
+if (runsModelInGitHubActions()) {
     document.getElementById('run-model-btn').textContent = 'Ejecutar Modelo (GitHub Actions)';
 }
 
@@ -1897,7 +1904,7 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
         return;
     }
 
-    if (isStaticMode()) {
+    if (runsModelInGitHubActions()) {
         if (consoleOutput) showStaticRunInstructions(consoleOutput, baseConfigData, scenariosToRun);
         return;
     }
@@ -1926,12 +1933,16 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
             xhr.open('POST', '/api/run-model');
             xhr.setRequestHeader('Content-Type', 'application/json');
             let lastIndex = 0;
+            // Un evento puede llegar partido entre dos onprogress (el de resultados, seguro)
+            let pending = '';
             let settled = false;
+            let finished = false;
 
-            xhr.onprogress = () => {
-                const newData = xhr.responseText.substring(lastIndex);
+            const readEvents = () => {
+                pending += xhr.responseText.substring(lastIndex);
                 lastIndex = xhr.responseText.length;
-                const parts = newData.split('\n\n');
+                const parts = pending.split('\n\n');
+                pending = parts.pop();
                 for (const part of parts) {
                     const match = part.match(/^data:\s*(.+)$/m);
                     if (!match) continue;
@@ -1940,6 +1951,11 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
                         if (evt.type === 'log') {
                             consoleEl.textContent += evt.data + '\n';
                             consoleEl.scrollTop = consoleEl.scrollHeight;
+                        } else if (evt.type === 'results') {
+                            // Solo lo envía la función de Vercel: el servidor Express deja los archivos en disco
+                            storeLocalRunResults(configData.escenario_ejecucion, evt.data);
+                        } else if (evt.type === 'done') {
+                            finished = true;
                         } else if (evt.type === 'error' && !settled) {
                             settled = true;
                             reject(new Error(evt.data));
@@ -1949,7 +1965,18 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
                 }
             };
 
-            xhr.onload = () => { if (!settled) { settled = true; resolve({ ok: true }); } };
+            xhr.onprogress = readEvents;
+            xhr.onload = () => {
+                readEvents();
+                if (settled) return;
+                settled = true;
+                if (finished) {
+                    resolve({ ok: true });
+                } else {
+                    // Por ejemplo, si Vercel corta la función al llegar a su tiempo máximo
+                    reject(new Error(`La ejecución se interrumpió antes de terminar (HTTP ${xhr.status}).`));
+                }
+            };
             xhr.onerror = () => { if (!settled) { settled = true; reject(new Error('Error de conexión')); } };
             xhr.send(JSON.stringify(configData));
         });
@@ -1999,7 +2026,6 @@ document.getElementById('run-model-btn').addEventListener('click', async () => {
     } finally {
         if (btn) btn.disabled = false;
         if (loading) loading.style.display = 'none';
-        checkModelStatus();
     }
 });
 

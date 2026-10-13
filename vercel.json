@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "node scripts/build_static_site.js _site",
+  "outputDirectory": "_site",
+  "fluid": true,
+  "rewrites": [
+    { "source": "/api/run-model", "destination": "/api/run_model" }
+  ],
+  "functions": {
+    "api/run_model.py": {
+      "maxDuration": 300,
+      "excludeFiles": "{data/scenario_experiments/**,data/analysis/**,data/scenarios/**,legacy/**,docs/**,scripts/analysis/**,_site/**,manual_captures/**,.github/**}"
+    }
+  }
+}

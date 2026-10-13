@@ -6,6 +6,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const { exec, spawn } = require('child_process');
+const { parseFlowP1, mapProcessedLine, hasValidCoordinates } = require('./public/api_responses.js');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -180,47 +181,13 @@ app.get('/api/lines', (req, res) => {
     try {
         let lines;
         const processedFile = getFilePath('lines_processed.json', req);
-        const parseFlowP1 = (row) => {
-            const value =
-                row['Flow_P1'] ??
-                row['Flow P1'] ??
-                row['flowP1'] ??
-                row['flow_p1'] ??
-                row['Flujo_P1'] ??
-                row['Flujo P1'];
-            const numeric = Number(value);
-            return Number.isFinite(numeric) ? numeric : undefined;
-        };
 
         if (fs.existsSync(processedFile)) {
             console.log('Serving data from processed JSON file');
             const fileData = fs.readFileSync(processedFile, 'utf8');
             const rawData = JSON.parse(fileData);
 
-            lines = rawData.map(row => ({
-                id: row['ID'],
-                name: row['Nombre'] || 'Sin Nombre',
-                status: row['Estado'],
-                fmaxDirect: row['Fmax directo (MW)'],
-                fmaxInverse: row['Fmax inverso (MW)'],
-                start: {
-                    lat: parseFloat(row['lat_ini']),
-                    lon: parseFloat(row['lon_ini']),
-                    node: row['Nodo_ini'],
-                    country: row['pais_ini']
-                },
-                end: {
-                    lat: parseFloat(row['lat_fin']),
-                    lon: parseFloat(row['lon_fin']),
-                    node: row['Nodo_fin'],
-                    country: row['pais_fin']
-                },
-                deltaD: row['delta_D'],
-                factorUtilizacion: row['Factor utilizacion pais'],
-                X_LN: row['X_LN'],
-                flowP1: parseFlowP1(row),
-                inversionMUSD: row['Inversion total sin anualizar (MUSD)']
-            }));
+            lines = rawData.map(mapProcessedLine);
         } else {
             console.log('Serving data from raw Excel file');
             const workbook = xlsx.readFile(EXCEL_FILE);
@@ -260,10 +227,7 @@ app.get('/api/lines', (req, res) => {
         }
 
         // Common filtering
-        lines = lines.filter(line =>
-            !isNaN(line.start.lat) && !isNaN(line.start.lon) &&
-            !isNaN(line.end.lat) && !isNaN(line.end.lon)
-        );
+        lines = lines.filter(hasValidCoordinates);
 
         res.json(lines);
     } catch (error) {

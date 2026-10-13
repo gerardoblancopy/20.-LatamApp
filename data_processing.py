@@ -2067,13 +2067,17 @@ try:
     extract_gen_script = os.path.join(maintenance_dir, "extract_gen.py")
     extract_demand_script = os.path.join(maintenance_dir, "extract_demand.py")
     
+    # Ruta absoluta: los scripts interpretan las relativas desde la raíz del repo, no desde
+    # el directorio de trabajo (en Vercel el modelo corre en una carpeta temporal)
+    directorio_abs = os.path.abspath(directorio)
+
     # Run Generation Extraction (including generators, storage, and revenues)
     print(f"Running {extract_gen_script}...")
-    subprocess.run([sys.executable, extract_gen_script, directorio], check=True)
+    subprocess.run([sys.executable, extract_gen_script, directorio_abs], check=True)
     
     # Run Demand Extraction
     print(f"Running {extract_demand_script}...")
-    subprocess.run([sys.executable, extract_demand_script, directorio], check=True)
+    subprocess.run([sys.executable, extract_demand_script, directorio_abs], check=True)
     
     print("All post-simulation extraction scripts completed successfully.")
 except Exception as e:
