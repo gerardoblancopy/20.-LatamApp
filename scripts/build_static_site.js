@@ -67,14 +67,17 @@ function checkSharedResponses(endpoint, scenario, serverData) {
     }
 }
 
+// Misma forma que /runtime_config.js en server.js
 function runtimeConfig() {
+    const cartoApiKey = process.env.CARTO_API_KEY || '';
     if (process.env.VERCEL) {
-        return { staticMode: true, runModel: 'serverless' };
+        return { staticMode: true, runModel: 'serverless', cartoApiKey };
     }
     return {
         staticMode: true,
         runModel: 'actions',
-        runModelUrl: `${repositoryUrl()}/actions/workflows/run-model.yml`
+        runModelUrl: `${repositoryUrl()}/actions/workflows/run-model.yml`,
+        cartoApiKey
     };
 }
 
@@ -111,6 +114,9 @@ async function main() {
         server.close();
     }
 
+    if (!process.env.CARTO_API_KEY) {
+        console.warn('CARTO_API_KEY no está definida: el mapa base mostrará la marca "API KEY REQUIRED".');
+    }
     fs.writeFileSync(
         path.join(OUT_DIR, 'runtime_config.js'),
         `// Generado por scripts/build_static_site.js\nwindow.LATAM_RUNTIME = ${JSON.stringify(runtimeConfig())};\n`
